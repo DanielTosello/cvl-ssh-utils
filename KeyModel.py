@@ -43,6 +43,7 @@ class sshpaths():
                 sshAgentBinary   = self.double_quote(f('ssh-agent.exe'))
                 #sshAgentBinary   = self.double_quote(f('charade.exe'))
             else:
+                #sshAgentBinary   = self.double_quote(f('ssh-agent.exe'))
                 sshAgentBinary   = self.double_quote(f('charade.exe'))
             sshAddBinary     = self.double_quote(f('ssh-add.exe'))
             chownBinary      = self.double_quote(f('chown.exe'))
@@ -203,6 +204,28 @@ class KeyModel():
             else:
                 del os.environ['SSH_AUTH_SOCK']
             self.sshAgentProcess=None
+            if sys.platform.startswith('win'):
+                if 'PREVIOUS_SSH_AUTH_SOCK_REGISTRY' in os.environ:
+		    agentenv = os.environ['PREVIOUS_SSH_AUTH_SOCK_REGISTRY']
+	        else:
+		    agentenv = ""
+                from _winreg import *
+                import win32gui, win32con
+                try:
+                    path = 'Environment'
+                    reg = ConnectRegistry(None, HKEY_CURRENT_USER)
+                    key = OpenKey(reg, path, 0, KEY_ALL_ACCESS)
+		    try:
+			if agentenv!="":
+		            SetValueEx(key,'SSH_AUTH_SOCK',0,REG_SZ,agentenv)
+		        else:
+			    DeleteValueEx(key,'SSH_AUTH_SOCK')
+		    except Exception as e:
+                        logger.debug("couldn't set the SSH_AUTH_SOCK registry entry")
+		    CloseKey(key)
+		    win32gui.SendMessage(win32con.HWND_BROADCAST,win32con.WM_SETTINGCHANGE,0,'Environment')
+                except Exception as e:
+                    logger.debug("Couldn't open the windows registry to set the SSH_AUTH_SOCK")
 
 
     def startAgent(self):
@@ -247,15 +270,23 @@ class KeyModel():
                     from _winreg import *
                     import win32gui, win32con
                     try:
-                        path = r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
-                        reg = ConnectRegistry(None, HKEY_LOCAL_USER)
+                        path = 'Environment'
+                        reg = ConnectRegistry(None, HKEY_CURRENT_USER)
                         key = OpenKey(reg, path, 0, KEY_ALL_ACCESS)
                         try:
-                            (value,type_id) = QueryValueEx(key,'SSH_AUTH_SOCK')
-                        except:
-                            print("couldn't query regkey ssh_auth_sock")
-                    except:
-                        print("couldn't open registery properly")
+			    (value,type_id) = QueryValueEx(key,'SSH_AUTH_SOCK')
+			    os.environ['PREVIOUS_SSH_AUTH_SOCK_REGISTRY']=value
+			except WindowsError:
+			    pass
+			try:
+			    SetValueEx(key,'SSH_AUTH_SOCK',0,REG_SZ,agentenv)
+			except Exception as e:
+                            logger.debug("couldn't set the SSH_AUTH_SOCK registry entry")
+			CloseKey(key)
+			win32gui.SendMessage(win32con.HWND_BROADCAST,win32con.WM_SETTINGCHANGE,0,'Environment')
+                    except Exception as e:
+                        logger.debug("Couldn't open the windows registry to set the SSH_AUTH_SOCK")
+
 
 
             match2 = re.search("^SSH_AGENT_PID=(?P<pid>[0-9]+);.*$",line)
