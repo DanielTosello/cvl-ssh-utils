@@ -27,7 +27,7 @@ class shibbolethDance():
     def getIdP(self):
         return self.idp
 
-    def getUsername(self):
+    def getLocalUsername(self):
         if hasattr(self,'username'):
             return self.username
         else:
