@@ -164,7 +164,7 @@ class AAF_Auth():
 
     def getIdPChoices(self,session):
         url='https://ds.aaf.edu.au/discovery/DS'
-        r=session.get(url)
+        r=session.get(url,verify=False)
         p=AAF_Auth.DSForm()
         p.feed(r.text)
         return p.options
