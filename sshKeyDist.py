@@ -389,10 +389,9 @@ class KeyDist():
                     pubkey=f.read()
                 # Here we make the decision as to how to copy the public key to the users authorized keys file. This of this as a factory pattern, although I'm sure there are neater ways to implement it.
                 if event.keydist.useAAF:
-                    print "using AAF to auth key"
-                    obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,idp=event.keydist.aaf_idp)
+                    obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
                 else:
-                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings)
+                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog)
                 logger.debug("received COPYID event")
                 t = KeyDist.CopyIDThread(event.keydist,obj=obj)
                 t.setDaemon(True)
