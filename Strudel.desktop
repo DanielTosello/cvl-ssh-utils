@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=false
+Name[en_US]=Strudel
+Exec=/opt/Strudel/strudel.sh
+Name=Strudel
+Icon=/opt/Strudel/icons/MASSIVElogoTransparent128x128.png
+
