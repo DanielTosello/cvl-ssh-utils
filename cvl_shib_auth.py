@@ -40,5 +40,6 @@ class shibbolethDance():
         self.session=cvlsshutils.RequestsSessionSingleton.RequestsSessionSingleton().GetSession()
         destURL="https://autht.massive.org.au/cvl/"
         auth=cvlsshutils.AAF_Auth.AAF_Auth(self.session,destURL,parent=self.parent,**self.kwargs)
+        auth.auth_cycle()
         self.idp=auth.getIdP()
         self.postKey(destURL)
