@@ -197,7 +197,7 @@ class AAF_Auth():
         return d
         
 
-    def __init__(self,s,destURL,parent,*args,**kwargs):
+    def __init__(self,s,authURL,parent,*args,**kwargs):
         self.parent=parent
         if kwargs.has_key('aaf_idp'):
             self.idp=kwargs['aaf_idp']
@@ -208,7 +208,9 @@ class AAF_Auth():
         else:
             self.username=None
         self.passwd=None
-        self.destURL=destURL
+        print "setting destURL to %s"%authURL
+        self.destURL=authURL
+
         if kwargs.has_key('progressDialog'):
             self.progressDialog=kwargs['progressDialog']
         else:

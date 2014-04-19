@@ -387,7 +387,7 @@ class KeyDist():
                 with open(pubKeyPath,'r') as f:
                     pubkey=f.read()
                 # Here we make the decision as to how to copy the public key to the users authorized keys file. This of this as a factory pattern, although I'm sure there are neater ways to implement it.
-                if event.keydist.useAAF:
+                if event.keydist.authURL!=None:
                     obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
                 else:
                     obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog)
@@ -532,7 +532,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,useAAF=False,authURL=None,aaf_idp=None,aaf_username=None,jobParams={}):
+    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,jobParams={},*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -604,7 +604,6 @@ class KeyDist():
         self.creationflags = creationflags
         self.shuttingDown=Event()
         self.jobParams=jobParams
-        self.useAAF=useAAF
         self.authURL=authURL
         if self.jobParams.has_key('aaf_idp'):
             self.aaf_idp=self.jobParams['aaf_idp']
