@@ -24,8 +24,8 @@ class shibbolethDance():
         if r.status_code!=200:
             raise Exception("%s"%r.text)
 
-    def getIdP(self):
-        return self.idp
+    def getUpdateDict(self):
+        return self.updateDict
 
     def getLocalUsername(self):
         if hasattr(self,'username'):
@@ -41,5 +41,5 @@ class shibbolethDance():
         destURL="https://autht.massive.org.au/cvl/"
         auth=cvlsshutils.AAF_Auth.AAF_Auth(self.session,destURL,parent=self.parent,**self.kwargs)
         auth.auth_cycle()
-        self.idp=auth.getIdP()
+        self.updateDict=auth.getUpdateDict()
         self.postKey(destURL)

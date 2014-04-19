@@ -109,7 +109,7 @@ class AAF_Auth():
             p.GetSizer().Add((1,-1),proportion=1,flag=wx.EXPAND)
             b=wx.Button(p,wx.ID_CANCEL,"Cancel")
             b.Bind(wx.EVT_BUTTON,self.onClose)
-            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT)
+            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.RIGHT,border=15)
             b=wx.Button(p,wx.ID_OK,"OK")
             b.Bind(wx.EVT_BUTTON,self.onClose)
             p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT)
@@ -190,13 +190,19 @@ class AAF_Auth():
         r=session.post(nexturl,data=p.inputs,verify=False)
         return r
 
-    def getIdP(self):
-        return self.idp
+    def getUpdateDict(self):
+        d={}
+        d['aaf_idp']=self.idp
+        d['aaf_username']=self.username
+        return d
         
 
-    def __init__(self,s,destURL,parent,idp=None,*args,**kwargs):
+    def __init__(self,s,destURL,parent,*args,**kwargs):
         self.parent=parent
-        self.idp=idp
+        if kwargs.has_key('aaf_idp'):
+            self.idp=kwargs['aaf_idp']
+        else:
+            self.idp=None
         if kwargs.has_key('aaf_username'):
             self.username=kwargs['aaf_username']
         else:
