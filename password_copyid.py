@@ -1,16 +1,21 @@
 import wx
 class genericCopyID():
 
-    def __init__(self,pubkey,username,host,displayStrings,parent,*args,**kwargs):
+    def __init__(self,pubkey,username,host,displayStrings,parent,progressDialog,*args,**kwargs):
         self.username=username
         self.host=host
         self.displayStrings=displayStrings
         self.pubkey=pubkey
         self.parent=parent
+        self.progressDialog=progressDialog
 
     def getPass(self,queue):
         dlg=wx.PasswordEntryDialog(self.parent,self.displayStrings.passwdPrompt)
+        if self.progressDialog is not None:
+            self.progressDialog.Hide()
         retval=dlg.ShowModal()
+        if self.progressDialog is not None:
+            self.progressDialog.Show()
         if retval==wx.ID_OK:
             queue.put(dlg.GetValue())
         else:
