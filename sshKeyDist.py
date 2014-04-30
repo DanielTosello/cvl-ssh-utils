@@ -390,7 +390,7 @@ class KeyDist():
                 if event.keydist.authURL!=None:
                     obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
                 else:
-                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog)
+                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog,authorizedKeysFile=event.keydist.authorizedKeysFile)
                 logger.debug("received COPYID event")
                 t = KeyDist.CopyIDThread(event.keydist,obj=obj)
                 t.setDaemon(True)
@@ -532,7 +532,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,jobParams={},*args,**kwargs):
+    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,authorizedKeysFile=None,jobParams={},*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -605,6 +605,7 @@ class KeyDist():
         self.shuttingDown=Event()
         self.jobParams=jobParams
         self.authURL=authURL
+        self.authorizedKeysFile=authorizedKeysFile
         if self.jobParams.has_key('aaf_idp'):
             self.aaf_idp=self.jobParams['aaf_idp']
         else:

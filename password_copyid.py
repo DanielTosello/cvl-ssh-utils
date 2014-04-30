@@ -1,13 +1,17 @@
 import wx
 class genericCopyID():
 
-    def __init__(self,pubkey,username,host,displayStrings,parent,progressDialog,*args,**kwargs):
+    def __init__(self,pubkey,username,host,displayStrings,parent,progressDialog,authorizedKeysFile=None,*args,**kwargs):
         self.username=username
         self.host=host
         self.displayStrings=displayStrings
         self.pubkey=pubkey
         self.parent=parent
         self.progressDialog=progressDialog
+        self.authorizedKeysFile=authorizedKeysFile
+        if self.authorizedKeysFile==None:
+            print "authorizedKeysFile is none, using default"
+            self.authorizedKeysFile="~/.ssh/authorized_keys"
 
     def getPass(self,queue):
         dlg=wx.PasswordEntryDialog(self.parent,self.displayStrings.passwdPrompt)
@@ -68,15 +72,15 @@ class genericCopyID():
         err=stderr.readlines()
         if err!=[]:
             raise Exception
-        (stdin,stdout,stderr)=sshClient.exec_command("/bin/touch ~/.ssh/authorized_keys")
+        (stdin,stdout,stderr)=sshClient.exec_command("/bin/touch %s"%(self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
             raise Exception
-        (stdin,stdout,stderr)=sshClient.exec_command("/bin/chmod 600 ~/.ssh/authorized_keys")
+        (stdin,stdout,stderr)=sshClient.exec_command("/bin/chmod 600 %s"%(self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
             raise Exception
-        (stdin,stdout,stderr)=sshClient.exec_command("/bin/echo \"%s\" >> ~/.ssh/authorized_keys"%self.pubkey)
+        (stdin,stdout,stderr)=sshClient.exec_command("/bin/echo \"%s\" >> %s"%(self.pubkey,self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
             raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
