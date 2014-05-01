@@ -61,7 +61,7 @@ class shibbolethDance():
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:
-                sshClient.connect(hostname=self.host,timeout=10,username=self.username,password=None,allow_agent=True,look_for_keys=False)
+                sshClient.connect(hostname=host,timeout=10,username=username,password=None,allow_agent=True,look_for_keys=False)
                 cmd="sed \'\\#{key}# D\' -i {authorizedKeysFile}"
                 command = cmd.format(key=key,authorizedKeysFile=self.authorizedKeysFile)
                 (stdin,stdout,stderr)=sshClient.exec_command(command)

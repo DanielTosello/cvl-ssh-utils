@@ -79,7 +79,7 @@ class genericCopyID():
         err=stderr.readlines()
         if err!=[]:
             raise Exception
-        (stdin,stdout,stderr)=sshClient.exec_command("/bin/echo \"%s\" >> %s"%(self.pubkey,self.authorizedKeysFile))
+        (stdin,stdout,stderr)=sshClient.exec_command("/bin/echo \"%s\" >> %s"%(self.pubkey.strip(),self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
             raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
@@ -100,7 +100,7 @@ class genericCopyID():
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:
-                sshClient.connect(hostname=self.host,timeout=10,username=self.username,password=None,allow_agent=True,look_for_keys=False)
+                sshClient.connect(hostname=host,timeout=10,username=username,password=None,allow_agent=True,look_for_keys=False)
                 cmd="sed \'\\#{key}# D\' -i {authorizedKeysFile}"
                 command = cmd.format(key=key,authorizedKeysFile=self.authorizedKeysFile)
                 (stdin,stdout,stderr)=sshClient.exec_command(command)
