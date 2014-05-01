@@ -7,10 +7,13 @@ import json
 class shibbolethDance():
 
 
-    def __init__(self,pubkey,parent,*args,**kwargs):
+    def __init__(self,pubkey,parent,authorizedKeysFile=None,*args,**kwargs):
         self.pubkey=pubkey
         self.parent=parent
         self.kwargs=kwargs
+        self.authorizedKeysFile=authorizedKeysFile
+        if self.authorizedKeysFile==None:
+            self.authorizedKeysFile="~/.ssh/authorized_keys"
 
     def postKey(self,url):
         data={}
@@ -43,3 +46,29 @@ class shibbolethDance():
         auth.auth_cycle()
         self.updateDict=auth.getUpdateDict()
         self.postKey(destURL)
+
+    def deleteRemoteKey(self,host,username):
+        from logger.Logger import logger
+        import traceback
+        if self.pubkey!=None:
+
+            try:
+                key=self.pubkey.split(' ')[1]
+            except:
+                key=self.pubkey
+
+            import ssh
+            sshClient = ssh.SSHClient()
+            sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
+            try:
+                sshClient.connect(hostname=self.host,timeout=10,username=self.username,password=None,allow_agent=True,look_for_keys=False)
+                cmd="sed \'\\#{key}# D\' -i {authorizedKeysFile}"
+                command = cmd.format(key=key,authorizedKeysFile=self.authorizedKeysFile)
+                (stdin,stdout,stderr)=sshClient.exec_command(command)
+                logger.debug("deleted remote key")
+                err=stderr.readlines()
+                if err!=[]:
+                    raise Exception("unable to delete remote key")
+            except:
+                logger.debug("unable to delete remote key")
+                logger.debug(traceback.format_exc())

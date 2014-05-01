@@ -342,7 +342,6 @@ class KeyDist():
                 return
             if (not self.stopped()):
                 wx.PostEvent(self.keydistObject.notifywindow.GetEventHandler(), event)
-            self.keydistObject.keyModel.copiedID.set()
             self.keydistObject.keycopied.set()
             self.keydistObject.__dict__.update(self.keydistObject.updateDict)
 
@@ -388,11 +387,11 @@ class KeyDist():
                     pubkey=f.read()
                 # Here we make the decision as to how to copy the public key to the users authorized keys file. This of this as a factory pattern, although I'm sure there are neater ways to implement it.
                 if event.keydist.authURL!=None:
-                    obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
+                    event.keydist.copyidobj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
                 else:
-                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog,authorizedKeysFile=event.keydist.authorizedKeysFile)
+                    event.keydist.copyidobj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog,authorizedKeysFile=event.keydist.authorizedKeysFile)
                 logger.debug("received COPYID event")
-                t = KeyDist.CopyIDThread(event.keydist,obj=obj)
+                t = KeyDist.CopyIDThread(event.keydist,obj=event.keydist.copyidobj)
                 t.setDaemon(True)
                 t.start()
                 event.keydist.threads.append(t)
@@ -532,7 +531,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,authorizedKeysFile=None,jobParams={},*args,**kwargs):
+    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,authorizedKeysFile=None,jobParams={},*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -594,12 +593,12 @@ class KeyDist():
         self.callback_fail=None
         self.callback_error = None
         self._canceled=Event()
+        self.keyModel = keyModel
         self.removeKeyOnExit=Event()
         self.keyCreated=Event()
-        if removeKeyOnExit:
+        if self.keyModel.isTemporaryKey():
             self.removeKeyOnExit.set()
         self.stopAgentOnExit=Event()
-        self.keyModel = keyModel
         self.startupinfo = startupinfo
         self.creationflags = creationflags
         self.shuttingDown=Event()
@@ -687,7 +686,7 @@ class KeyDist():
             if self.keyCreated.isSet():
                 logger.debug("sshKeyDist.deleteRemoveShutdown: self.keyCreated.isSet() is True.")
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting remote key.")
-                self.keyModel.deleteRemoteKey(host=self.host,username=self.username)
+                self.copyidobj.deleteRemoteKey(host=self.host,username=self.username)
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting temporary key and removing key from agent.")
                 self.keyModel.deleteKey()
                 #logger.debug("sshKeyDist.deleteRemoveShutdown: removing key from agent.")
