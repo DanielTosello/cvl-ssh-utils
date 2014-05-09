@@ -7,6 +7,9 @@ import tempfile
 import traceback
 import threading
 import re
+if sys.platform.startswith('win'):
+    from _winreg import *
+    import win32gui, win32con
 
 if os.path.abspath("..") not in sys.path:
     sys.path.append(os.path.abspath(".."))
@@ -245,8 +248,6 @@ class KeyModel():
                     os.environ['PREVIOUS_SSH_AUTH_SOCK'] = os.environ['SSH_AUTH_SOCK']
                 os.environ['SSH_AUTH_SOCK'] = agentenv
                 if sys.platform.startswith('win'):
-                    from _winreg import *
-                    import win32gui, win32con
                     try:
                         path = r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
                         reg = ConnectRegistry(None, HKEY_LOCAL_USER)
@@ -712,18 +713,6 @@ class KeyModel():
                     return self.pubKey
         return None
 
-    def deleteRemoteKey(self,host,username):
-        if self.copiedID.isSet() and self.pubKey!=None:
-            import tempfile
-            fd=tempfile.NamedTemporaryFile(delete=True)
-            path=fd.name
-            fd.close()
-            cmd='{sshBinary} -A -T -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {username} {host} "sed \'\\#{key}# D\' -i ~/.ssh/authorized_keys"'
-            key=self.pubKey.split(' ')[1]
-            command = cmd.format(sshBinary=self.sshpaths.sshBinary,username=username,host=host,key=key,nonexistantpath=path)
-            logger.debug('KeyModel.deleteRemoteKey: running %s to delete remote key'%command)
-            p = subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags)
-            (stdout,stderr) = p.communicate()
         
 
 def pidIsRunning(pid):
