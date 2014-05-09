@@ -109,11 +109,11 @@ class AAF_Auth():
             p.GetSizer().Add((1,-1),proportion=1,flag=wx.EXPAND)
             b=wx.Button(p,wx.ID_CANCEL,"Cancel")
             b.Bind(wx.EVT_BUTTON,self.onClose)
-            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.RIGHT,border=15)
+            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
             b=wx.Button(p,wx.ID_OK,"OK")
             b.Bind(wx.EVT_BUTTON,self.onClose)
-            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT)
-            self.GetSizer().Add(p,flag=wx.EXPAND|wx.ALL,border=15)
+            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
+            self.GetSizer().Add(p,flag=wx.EXPAND|wx.BOTTOM,border=10)
             self.Fit()
 
         def onClose(self,event):
