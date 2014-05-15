@@ -230,31 +230,31 @@ class KeyDist():
             
             if self.keydistObject.username!=None and self.keydistObject.username!="":
                 ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
+
+                logger.debug('testAuthThread: attempting: ' + ssh_cmd)
+                ssh = subprocess.Popen(ssh_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
+                stdout, stderr = ssh.communicate()
+                ssh.wait()
+
+                logger.debug("testAuthThread %i: stdout of ssh command: "%threadid + str(stdout))
+                logger.debug("testAuthThread %i: stderr of ssh command: "%threadid + str(stderr))
+
+
+                if 'Could not resolve hostname' in stdout:
+                    logger.debug('Network error.')
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_NETWORK_ERROR,self.keydistObject)
+                elif 'success_testauth' in stdout:
+                    logger.debug("testAuthThread %i: got success_testauth in stdout :)"%threadid)
+                    self.keydistObject.authentication_success = True
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
+                elif 'Agent admitted' in stdout:
+                    logger.debug("testAuthThread %i: the ssh agent has an error. Try rebooting the computer")
+                    self.keydistObject.cancel("Sorry, there is a problem with the SSH agent.\nThis sort of thing usually occurs if you delete your key and create a new one.\nThe easiest solution is to reboot your computer and try again.")
+                    return
+                else:
+                    logger.debug("testAuthThread %i: did not see success_testauth in stdout, posting EVT_KEYDIST_AUTHFAIL event"%threadid)
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
             else:
-                ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary, host=self.keydistObject.host, nonexistantpath=path)
-
-            logger.debug('testAuthThread: attempting: ' + ssh_cmd)
-            ssh = subprocess.Popen(ssh_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
-            stdout, stderr = ssh.communicate()
-            ssh.wait()
-
-            logger.debug("testAuthThread %i: stdout of ssh command: "%threadid + str(stdout))
-            logger.debug("testAuthThread %i: stderr of ssh command: "%threadid + str(stderr))
-
-
-            if 'Could not resolve hostname' in stdout:
-                logger.debug('Network error.')
-                newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_NETWORK_ERROR,self.keydistObject)
-            elif 'success_testauth' in stdout:
-                logger.debug("testAuthThread %i: got success_testauth in stdout :)"%threadid)
-                self.keydistObject.authentication_success = True
-                newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
-            elif 'Agent admitted' in stdout:
-                logger.debug("testAuthThread %i: the ssh agent has an error. Try rebooting the computer")
-                self.keydistObject.cancel("Sorry, there is a problem with the SSH agent.\nThis sort of thing usually occurs if you delete your key and create a new one.\nThe easiest solution is to reboot your computer and try again.")
-                return
-            else:
-                logger.debug("testAuthThread %i: did not see success_testauth in stdout, posting EVT_KEYDIST_AUTHFAIL event"%threadid)
                 newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
 
             if (not self.stopped()):
