@@ -85,7 +85,8 @@ class AAF_Auth():
             p.SetSizer(wx.FlexGridSizer(cols=2,rows=3,hgap=15,vgap=15))
             t=wx.StaticText(p,wx.ID_ANY,label='Please select your IdP')
             p.GetSizer().Add(t)
-            cb=wx.ComboBox(p,choices=options,name='idp_field')
+            cb=wx.ComboBox(p,choices=options,style=wx.CB_READONLY,name='idp_field')
+            cb.Select(0)
             if idp!=None:
                 try:
                     index=options.index(idp)
