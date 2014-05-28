@@ -184,7 +184,15 @@ class AAF_Auth():
                 p.inputs[i] = user
             if ('pass' in i or 'Pass' in i) and p.inputs[i]==None:
                 p.inputs[i] = pw
-        nexturl = p.attrs['action']
+        try:
+            nexturl = p.attrs['action']
+        except:
+            nexturl = url
+        logger.debug('idp form inputs %s'%p.inputs)
+        for k in p.inputs.keys():
+            if 'RESET' in k.upper():
+                logger.debug('deleting the input %s from the attribute release form'%k)
+                del p.inputs[k]
         if  not 'http' in nexturl[0:4]:
             nexturl=url.split('/')[0]+'//'+url.split('/')[2]+nexturl
 
@@ -209,7 +217,6 @@ class AAF_Auth():
         else:
             self.username=None
         self.passwd=None
-        print "setting destURL to %s"%authURL
         self.destURL=authURL
 
         if kwargs.has_key('progressDialog'):
@@ -248,6 +255,7 @@ class AAF_Auth():
                     d={}
                     d['user_idp'] = myidp.encode('ascii')
                     d['Select']='Select'
+                    logger.debug('in auth_cycle, url is %s'%r.url)
                     nexturl = p.attrs['action']
                     if  not 'http' in nexturl[0:4]:
                         nexturl=r.url.split('/')[0]+'//'+r.url.split('/')[2]+nexturl
