@@ -242,7 +242,7 @@ class AAF_Auth():
                     wx.CallAfter(self.queryIdPUserPass,self.idpoptions,queue,self.idp,self.username)
                     res=queue.get()
                     if res==None:
-                        raise Exception("Login cancled")
+                        raise Exception("Login cancelled")
                     else:
                         (myidp,self.idp,self.username,self.passwd)=res
                         logger.debug('queryIdPUserPass set values for idp: %s user: %s.'%(self.idp,self.username))
