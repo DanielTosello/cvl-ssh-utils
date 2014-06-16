@@ -34,8 +34,8 @@ class InspectKeyDialog(wx.Dialog):
         # Instructions label
 
         self.instructionsLabel = wx.StaticText(self.inspectKeyDialogPanel, wx.ID_ANY, 
-            "The Launcher needs a private key to authenticate against remote servers such as MASSIVE.\n\n" + 
-            "Here, you can inspect the properties of your MASSIVE Launcher key.")
+            "Strudel needs a private key to authenticate against remote servers.\n\n" + 
+            "Here, you can inspect the properties of your Strudel Launcher key.")
         self.inspectKeyDialogPanelSizer.Add(self.instructionsLabel, flag=wx.EXPAND|wx.BOTTOM, border=15)
 
         # Key properties panel
@@ -168,9 +168,9 @@ class InspectKeyDialog(wx.Dialog):
 
         self.addKeyToOrRemoveKeyFromAgentButton = wx.Button(self.innerAgentPropertiesPanel, wx.ID_ANY, "")
         if self.fingerprintInAgentField.GetValue()=="":
-            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add MASSIVE Launcher key to agent")
+            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add Strudel key to agent")
         else:
-            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove MASSIVE Launcher key from agent")
+            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove Strudel key from agent")
 
         self.innerAgentPropertiesPanelSizer.Add(self.addKeyToOrRemoveKeyFromAgentButton, flag=wx.EXPAND|wx.TOP|wx.BOTTOM, border=10)
         self.Bind(wx.EVT_BUTTON, self.onAddKeyToOrRemoveFromAgent, id=self.addKeyToOrRemoveKeyFromAgentButton.GetId())
@@ -226,9 +226,9 @@ class InspectKeyDialog(wx.Dialog):
         self.populateFingerprintAndKeyTypeFields()
         self.populateFingerprintInAgentField()
         if self.fingerprintInAgentField.GetValue()=="":
-            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add MASSIVE Launcher key to agent")
+            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add Strudel key to agent")
         else:
-            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove MASSIVE Launcher key from agent")
+            self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove Strudel key from agent")
 
     def populateSshAuthSockField(self):
         if "SSH_AUTH_SOCK" not in os.environ:
@@ -268,7 +268,7 @@ class InspectKeyDialog(wx.Dialog):
 
     def onAddKeyToOrRemoveFromAgent(self, event):
         logger.debug("onAddKeyToOrRemoveFromAgent")
-        if self.addKeyToOrRemoveKeyFromAgentButton.GetLabel()=="Add MASSIVE Launcher key to agent":
+        if self.addKeyToOrRemoveKeyFromAgentButton.GetLabel()=="Add Strudel key to agent":
             logger.debug("onAddKeyToOrRemoveFromAgent: Adding key to agent...")
 
             import cvlsshutils
@@ -284,39 +284,39 @@ class InspectKeyDialog(wx.Dialog):
                 def passphraseIncorrectCallback():
                     message = "Passphrase incorrect."
                     logger.debug("InspectKeyDialog.onAddKeyToOrRemoveFromAgent callback: " + message)
-                    dlg = wx.MessageDialog(self, message, "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                    dlg = wx.MessageDialog(self, message, "Strudel", wx.OK | wx.ICON_INFORMATION)
                     dlg.ShowModal()
                 def privateKeyFileNotFoundCallback():
                     message = "Private key file not found."
                     logger.debug("InspectKeyDialog.onAddKeyToOrRemoveFromAgent callback: " + message)
-                    dlg = wx.MessageDialog(self, message, "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                    dlg = wx.MessageDialog(self, message, "Strudel", wx.OK | wx.ICON_INFORMATION)
                     dlg.ShowModal()
                 def failedToConnectToAgentCallback():
                     message = "Could not open a connection to your authentication agent."
                     logger.debug("InspectKeyDialog.onAddKeyToOrRemoveFromAgent callback: " + message)
-                    dlg = wx.MessageDialog(self, message, "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                    dlg = wx.MessageDialog(self, message, "Strudel", wx.OK | wx.ICON_INFORMATION)
                     dlg.ShowModal()
                 success = self.keyModel.addKeyToAgent(passphrase, keyAddedSuccessfullyCallback, passphraseIncorrectCallback, privateKeyFileNotFoundCallback, failedToConnectToAgentCallback)
                 if success:
                     logger.debug("onAddKeyToOrRemoveFromAgent: Added key to agent.")
                     self.populateFingerprintInAgentField()
-                    self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove MASSIVE Launcher key from agent")
-        elif self.addKeyToOrRemoveKeyFromAgentButton.GetLabel()=="Remove MASSIVE Launcher key from agent":
+                    self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Remove Strudel key from agent")
+        elif self.addKeyToOrRemoveKeyFromAgentButton.GetLabel()=="Remove Strudel key from agent":
             logger.debug("onAddKeyToOrRemoveFromAgent: Removing key from agent...")
             success = self.keyModel.removeKeyFromAgent()
             if success:
                 logger.debug("onAddKeyToOrRemoveFromAgent: Removed key from agent.")
                 self.populateFingerprintInAgentField()
-                self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add MASSIVE Launcher key to agent")
+                self.addKeyToOrRemoveKeyFromAgentButton.SetLabel("Add Strudel key to agent")
             else:
                 logger.debug("onAddKeyToOrRemoveFromAgent: Failed to remove key from agent.")
-                dlg = wx.MessageDialog(self, "Failed to remove key from your agent.", "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                dlg = wx.MessageDialog(self, "Failed to remove key from your agent.", "Strudel", wx.OK | wx.ICON_INFORMATION)
                 dlg.ShowModal()
 
     def onDeleteKey(self,event):
         dlg = wx.MessageDialog(self, 
             "Are you sure you want to delete your key?",
-            "MASSIVE/CVL Launcher", wx.YES_NO | wx.ICON_QUESTION)
+            "Strudel", wx.YES_NO | wx.ICON_QUESTION)
         if dlg.ShowModal()==wx.ID_YES:
 
             success = self.keyModel.deleteKey(removeFromAgent=True, ignoreFailureToConnectToAgent=True)
@@ -327,7 +327,7 @@ class InspectKeyDialog(wx.Dialog):
                 message = "An error occured while attempting to delete your key."
             dlg = wx.MessageDialog(self, 
                 message,
-                "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
 
             if success:

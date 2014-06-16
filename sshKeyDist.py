@@ -644,7 +644,7 @@ class KeyDist():
 
     def getPassphrase(self,reason=None):
         from CreateNewKeyDialog import CreateNewKeyDialog
-        createNewKeyDialog = CreateNewKeyDialog(self.parentWindow, self.progressDialog, wx.ID_ANY, 'MASSIVE/CVL Launcher Private Key', self.keyModel.getPrivateKeyFilePath(),self.displayStrings, displayMessageBoxReportingSuccess=False)
+        createNewKeyDialog = CreateNewKeyDialog(self.parentWindow, self.progressDialog, wx.ID_ANY, self.parentWindow.programName, self.keyModel.getPrivateKeyFilePath(),self.displayStrings, displayMessageBoxReportingSuccess=False)
         try:
             wx.EndBusyCursor()
             stoppedBusyCursor = True

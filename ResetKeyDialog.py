@@ -143,7 +143,7 @@ class ResetKeyDialog(wx.Dialog):
                 self.passphraseField.SetFocus()
 
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             return
 
@@ -173,7 +173,7 @@ class ResetKeyDialog(wx.Dialog):
                 def failedToConnectToAgentCallback():
                     dlg = wx.MessageDialog(self,
                         "Could not open a connection to your authentication agent.",
-                        "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                        "Strudel", wx.OK | wx.ICON_INFORMATION)
                     dlg.ShowModal()
                 success = keyModelObject.addKeyToAgent(self.passphraseField.GetValue(), keyAddedSuccessfullyCallback, passphraseIncorrectCallback, privateKeyFileNotFoundCallback, failedToConnectToAgentCallback)
                 if success:
@@ -194,7 +194,7 @@ class ResetKeyDialog(wx.Dialog):
 
         dlg = wx.MessageDialog(self,
             message,
-            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+            "Strudel", wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
 
         if success:

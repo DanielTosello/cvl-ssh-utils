@@ -178,7 +178,7 @@ class CreateNewKeyDialog(wx.Dialog):
                 self.passphraseField.SetFocus()
 
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             return
         self.reopenProgressDialogIfNecessary()
@@ -204,7 +204,7 @@ class CreateNewKeyDialog(wx.Dialog):
 
     def onBrowse(self, event):
         wx.MessageBox("For now, you must use the Launcher's default private key location.",
-                      "MASSIVE/CVL Launcher", wx.OK|wx.ICON_EXCLAMATION)
+                      "Strudel", wx.OK|wx.ICON_EXCLAMATION)
         return
         #saveFileDialog = wx.FileDialog (self, message = 'MASSIVE Launcher private key file...', defaultDir=self.privateKeyDir, defaultFile=self.privateKeyFilename, style = wx.SAVE)
         #if saveFileDialog.ShowModal() == wx.ID_OK:
