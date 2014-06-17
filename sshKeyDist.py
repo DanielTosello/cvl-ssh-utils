@@ -161,7 +161,7 @@ class KeyDist():
                 self.ssh_keygen_cmd.append(s.format(sshkeygen=self.keydistObject.keyModel.sshpaths.sshKeyGenBinary,host=self.keydistObject.host,known_hosts_file=self.keydistObject.keyModel.sshpaths.sshKnownHosts))
             self.ssh_keyscan_cmd=[]
             for s in shlex.split('{sshscan} -H {host}'):
-                ssh_keyscan_cmd.append(s.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host))
+                self.ssh_keyscan_cmd.append(s.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host))
             self._stop = Event()
 
         def stop(self):
