@@ -10,6 +10,7 @@ import re
 if sys.platform.startswith('win'):
     from _winreg import *
     import win32gui, win32con
+import signal
 
 if os.path.abspath("..") not in sys.path:
     sys.path.append(os.path.abspath(".."))
@@ -197,7 +198,6 @@ class KeyModel():
             #self.pageant=None
         # Do no use self.sshAgentProcess.kill() the sshAgentProcess forks the real agent and exits so the kill won't get the real process
         if self.sshAgentProcess!=None:
-            import signal
             try:
                 os.kill(int(self.agentPid),signal.SIGTERM)
             except:
@@ -213,8 +213,6 @@ class KeyModel():
 		    agentenv = os.environ['PREVIOUS_SSH_AUTH_SOCK_REGISTRY']
 	        else:
 		    agentenv = ""
-                from _winreg import *
-                import win32gui, win32con
                 try:
                     path = 'Environment'
                     reg = ConnectRegistry(None, HKEY_CURRENT_USER)
@@ -346,16 +344,19 @@ class KeyModel():
         if keyComment!=None:
             self.keyComment = keyComment
         if sys.platform.startswith('win'):
-            cmdList = [self.sshPathsObject.sshKeyGenBinary.strip('"'), "-f", self.getPrivateKeyFilePath(), "-C", self.sshpaths.double_quote(self.keyComment), "-N", passphrase]
+            cmdList = [self.sshPathsObject.sshKeyGenBinary, "-f", self.sshpaths.double_quote(self.getPrivateKeyFilePath()), "-C", self.sshpaths.double_quote(self.keyComment), "-N", passphrase]
             logger.debug("KeyModel.generateNewKey: " + " ".join(cmdList))
-            proc = subprocess.Popen(cmdList,
+	    cmd = " ".join(cmdList)
+            proc = subprocess.Popen(cmd,
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT,
                                     universal_newlines=True,
+				    shell=True,
                                     startupinfo=self.startupinfo,
                                     creationflags=self.creationflags)
-            stdout, stderr = proc.communicate('\r\n')
+            #stdout, stderr = proc.communicate('\r\n')
+            stdout, stderr = proc.communicate()
 
             if stdout is None or str(stdout).strip() == '':
                 logger.debug("KeyModel.generateNewKey: " + '(1) Got EOF from ssh-keygen binary')
@@ -536,7 +537,10 @@ class KeyModel():
         return True
 
     def diffKeys(self,preList):
-        postList = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),'-L'],stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
+	if sys.platform.startswith("win"):
+            postList = subprocess.Popen(" ".join([self.sshPathsObject.sshAddBinary,'-L']),shell=True,stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
+	else:
+            postList = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),'-L'],stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
         for line in postList:
             if (not line in preList):
                 match = re.search("^(?P<keytype>\S+)\ (?P<key>\S+)\ (?P<keycomment>.+)$",line)
@@ -550,7 +554,10 @@ class KeyModel():
             privateKeyFileNotFoundCallback()
             return success
         try:
-            preList = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),'-L'],stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
+	    if sys.platform.startswith("win"):
+                preList = subprocess.Popen(" ".join([self.sshPathsObject.sshAddBinary,'-L']),shell=True,stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
+            else:
+                preList = subprocess.Popen([self.sshPathsObject.sshAddBinary,'-L'],shell=False,stdin=None,stdout=subprocess.PIPE,stderr=None,universal_newlines=True,startupinfo=self.startupinfo,creationflags=self.creationflags).communicate()
         except:
             failedToConnectToAgentCallback()
             return False
@@ -558,17 +565,18 @@ class KeyModel():
         if sys.platform.startswith('win'):
             # The patched OpenSSH binary on Windows/cygwin allows us
             # to send the passphrase via STDIN.
-            cmdList = [self.sshPathsObject.sshAddBinary.strip('"'), self.getPrivateKeyFilePath()]
+            cmdList = [self.sshPathsObject.sshAddBinary, self.sshPathsObject.double_quote(self.getPrivateKeyFilePath())]
             logger.debug("KeyModel.addKeyToAgent: " + " ".join(cmdList))
             # I think, if the agent is inaccessible, Popen will succeed, but communicate will throw an exception
             # However I only saw this while fixing a separate bug
             # We will wrap this in a try except clause just incase it offers additional robustness. CH
             try:
-                proc = subprocess.Popen(cmdList,
+                proc = subprocess.Popen(" ".join(cmdList),
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT,
                                         universal_newlines=True,
+					shell=True,
                                         startupinfo=self.startupinfo,
                                         creationflags=self.creationflags)
                 stdout, stderr = proc.communicate(input=passphrase + '\r\n')
@@ -667,9 +675,15 @@ class KeyModel():
             logger.debug("Removing Launcher public key(s) from agent.")
 
             if self.pubKey!=None:
-                publicKeysInAgentProc = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-L"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
+		if sys.platform.startswith("win"):
+                    publicKeysInAgentProc = subprocess.Popen(" ".join([self.sshPathsObject.sshAddBinary,"-L"]),shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
+		else:
+                    publicKeysInAgentProc = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-L"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
             elif self.pubKeyFingerprint!=None:
-                publicKeysInAgentProc = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-l"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
+		if sys.platform.startswith("win"):
+                    publicKeysInAgentProc = subprocess.Popen(" ",join([self.sshPathsObject.sshAddBinary,"-l"]),shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
+		else:
+                    publicKeysInAgentProc = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-l"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,startupinfo=self.startupinfo, creationflags=self.creationflags)
             else:
                 logger.debug("KeyModel.removeKeyFromAgent: Bailing out because self.pubKey is None and self.pubKeyFingerprint is None.")
                 return 
@@ -680,7 +694,10 @@ class KeyModel():
                     tempPublicKeyFile.write(publicKeyLineFromAgent)
                     tempPublicKeyFile.close()
                     try:
-                        removePublicKeyFromAgent = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-d",tempPublicKeyFile.name],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, startupinfo=self.startupinfo, creationflags=self.creationflags)
+			if sys.platform.startswith("win"):
+                            removePublicKeyFromAgent = subprocess.Popen(" ".join([self.sshPathsObject.sshAddBinary,"-d",tempPublicKeyFile.name]),stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, startupinfo=self.startupinfo, creationflags=self.creationflags)
+			else:
+                            removePublicKeyFromAgent = subprocess.Popen([self.sshPathsObject.sshAddBinary.strip('"'),"-d",tempPublicKeyFile.name],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, startupinfo=self.startupinfo, creationflags=self.creationflags)
                         logger.debug("KeyModel.removeKeyFromAgent: " + self.sshPathsObject.sshAddBinary + " -d " + tempPublicKeyFile.name)
                         stdout, stderr = removePublicKeyFromAgent.communicate()
                         if stderr is not None and len(stderr) > 0:
