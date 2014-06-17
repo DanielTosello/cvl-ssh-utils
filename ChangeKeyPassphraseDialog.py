@@ -164,7 +164,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
         if self.existingPassphraseField.GetValue().strip()=="":
             message = "Please enter your existing passphrase."
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.existingPassphraseField.SetFocus()
             return
@@ -172,7 +172,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
         if self.newPassphraseField.GetValue().strip()=="":
             message = "Please enter your new passphrase."
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.newPassphraseField.SetFocus()
             return
@@ -180,7 +180,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
         if self.newPassphraseStatusLabel1.GetLabelText()!="":
             message = self.newPassphraseStatusLabel1.GetLabelText()
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.newPassphraseField.SetFocus()
             return
@@ -188,7 +188,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
         if self.newPassphraseStatusLabel2.GetLabelText()!="" and self.newPassphraseStatusLabel2.GetLabelText()!="Passphrases match!":
             message = self.newPassphraseStatusLabel2.GetLabelText()
             dlg = wx.MessageDialog(self, message,
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.repeatNewPassphraseField.SetFocus()
             return
@@ -196,7 +196,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
 
         def existingPassphraseIncorrect():
             dlg = wx.MessageDialog(self, "Your existing passphrase appears to be incorrect.\nPlease enter it again.",
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.existingPassphraseField.SetSelection(-1,-1)
             self.existingPassphraseField.SetFocus()
@@ -215,7 +215,7 @@ class ChangeKeyPassphraseDialog(wx.Dialog):
         def keyLockedCallback():
             logger.debug("Callback: Key locked.")
             dlg = wx.MessageDialog(self, "Your key appears to be locked.",
-                            "MASSIVE/CVL Launcher", wx.OK | wx.ICON_INFORMATION)
+                            "Strudel", wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             self.existingPassphraseField.SetSelection(-1,-1)
             self.existingPassphraseField.SetFocus()

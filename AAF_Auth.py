@@ -2,6 +2,11 @@ import wx
 from HTMLParser import HTMLParser
 from logger.Logger import logger
 class AAF_Auth():
+
+    class reset_exception(Exception):
+        def __init__(self,*args,**kwargs):
+            super(AAF_Auth.reset_exception,self).__init__(*args,**kwargs)
+            
     class nectarLoginForm(HTMLParser):
         def handle_starttag(self,tag,attrs):
             if tag == 'form':
@@ -72,51 +77,72 @@ class AAF_Auth():
             if self.processingOption:
                 self.currentData = data
 
-
-    class IdPDialog(wx.Dialog):
-        def __init__(self,options,idp=None,*args,**kwargs):
-            super(AAF_Auth.IdPDialog,self).__init__(*args,**kwargs)
+    class IdPUserPassDialog(wx.Dialog):
+        def __init__(self,options,idp=None,user=None,*args,**kwargs):
+            super(AAF_Auth.IdPUserPassDialog,self).__init__(*args,**kwargs)
             self.SetSizer(wx.BoxSizer(wx.VERTICAL))
-            t=wx.StaticText(self,label='Please select your IdP')
-            self.GetSizer().Add(t,border=5,flag=wx.EXPAND|wx.ALL)
-            self.choice=wx.ComboBox(self,choices=options)
-            self.GetSizer().Add(self.choice,border=5,flag=wx.EXPAND|wx.ALL)
             p=wx.Panel(self)
-            p.SetSizer(wx.BoxSizer(wx.HORIZONTAL))
-            b=wx.Button(p,id=wx.ID_OK,label="OK")
-            b.Bind(wx.EVT_BUTTON,self.onClose)
-            p.GetSizer().Add(b,border=5,flag=wx.ALL)
-            b=wx.Button(p,id=wx.ID_CANCEL,label="Cancel")
-            b.Bind(wx.EVT_BUTTON,self.onClose)
-            p.GetSizer().Add(b,border=5,flag=wx.ALL)
-            self.GetSizer().Add(p)
+            p.SetSizer(wx.FlexGridSizer(cols=2,rows=3,hgap=15,vgap=15))
+            t=wx.StaticText(p,wx.ID_ANY,label='Please select your IdP')
+            p.GetSizer().Add(t)
+            cb=wx.ComboBox(p,choices=options,style=wx.CB_READONLY,name='idp_field')
+            cb.Select(0)
             if idp!=None:
                 try:
                     index=options.index(idp)
-                    self.choice.SetSelection(index)
+                    cb.Select(index)
                 except Exception as e:
                     pass
+            p.GetSizer().Add(cb)
+            t=wx.StaticText(p,wx.ID_ANY,label='Please enter your Username')
+            p.GetSizer().Add(t)
+            tc=wx.TextCtrl(p,wx.ID_ANY,name='username_field')
+            if user!=None:
+                tc.SetValue(user)
+            p.GetSizer().Add(tc,proportion=1,flag=wx.EXPAND)
+            t=wx.StaticText(p,wx.ID_ANY,label='Please enter your password')
+            p.GetSizer().Add(t)
+            pc=wx.TextCtrl(p,wx.ID_ANY,name='passwd_field',style=wx.TE_PASSWORD)
+            p.GetSizer().Add(pc,proportion=1,flag=wx.EXPAND)
+            self.GetSizer().Add(p,proportion=1,flag=wx.EXPAND|wx.ALL,border=15)
+            p=wx.Panel(self)
+            p.SetSizer(wx.BoxSizer(wx.HORIZONTAL))
+            p.GetSizer().Add((1,-1),proportion=1,flag=wx.EXPAND)
+            b=wx.Button(p,wx.ID_CANCEL,"Cancel")
+            b.Bind(wx.EVT_BUTTON,self.onClose)
+            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
+            b=wx.Button(p,wx.ID_OK,"OK")
+            b.Bind(wx.EVT_BUTTON,self.onClose)
+            p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
+            self.GetSizer().Add(p,flag=wx.EXPAND|wx.BOTTOM,border=10)
             self.Fit()
 
-        def onClose(self,evt):
-            self.EndModal(evt.GetEventObject().GetId())
+        def onClose(self,event):
+            rv=event.GetEventObject().GetId()
+            self.EndModal(rv)
 
-        def GetValue(self):
-            s=self.choice.GetSelection()
+        def getIdP(self):
+            idp=self.FindWindowByName('idp_field')
+            s=idp.GetSelection()
             if s>0:
-                return (s,self.choice.GetStringSelection())
+                return (s,idp.GetStringSelection())
             else:
                 return None
 
+        def getUser(self):
+            return self.FindWindowByName('username_field').GetValue()
 
+        def getPasswd(self):
+            return self.FindWindowByName('passwd_field').GetValue()
 
-    def queryIdP(self,options,queue,idp=None):
+    def queryIdPUserPass(self,options,queue,idp=None,username=None):
         o=[list(t) for t in zip(*options)]
 
-        dlg=AAF_Auth.IdPDialog(parent=self.parent,id=wx.ID_ANY,options=o[1],idp=idp)
+        dlg=AAF_Auth.IdPUserPassDialog(parent=self.parent,id=wx.ID_ANY,options=o[1],idp=idp,user=username)
         wx.EndBusyCursor()
+        self.progressDialog.Hide()
         if dlg.ShowModal()==wx.ID_OK:
-            res=dlg.GetValue()
+            res=dlg.getIdP()
             while res==None:
                 dlg1=wx.MessageDialog(parent=self.parent,message='You must select and IdP to continue',style=wx.OK)
                 dlg1.ShowModal()
@@ -125,34 +151,26 @@ class AAF_Auth():
                     res=dlg.GetValue()
                 else:
                     break
-            queue.put((o[0][res[0]],res[1]))
+            username=dlg.getUser()
+            passwd=dlg.getPasswd()
+            queue.put((o[0][res[0]],res[1],username,passwd))
         else:
             queue.put(None)
-        wx.BeginBusyCursor()
         dlg.Destroy()
+        self.progressDialog.Show()
+        wx.BeginBusyCursor()
 
-    def getPass(self,queue):
-        dlg=wx.PasswordEntryDialog(self.parent,"Please enter the password for your IdP")
-        wx.EndBusyCursor()
-        retval=dlg.ShowModal()
-        if retval==wx.ID_OK:
-            queue.put(dlg.GetValue())
-        else:
-            queue.put(None)
-        wx.BeginBusyCursor()
-        dlg.Destroy()
 
-    def getUsername(self,queue):
-        dlg=wx.TextEntryDialog(self.parent,"Please enter the username for your IdP")
-        wx.EndBusyCursor()
-        if dlg.ShowModal() == wx.ID_OK:
-            queue.put(dlg.GetValue())
-        else:
-            queue.put(None)
-        wx.BeginBusyCursor()
-        dlg.Destroy()
+
+    def getIdPChoices(self,session):
+        url='https://ds.aaf.edu.au/discovery/DS'
+        r=session.get(url,verify=False)
+        p=AAF_Auth.DSForm()
+        p.feed(r.text)
+        return p.options
+
                     
-    def processIdP(self,session,text,url):
+    def processIdP(self,session,text,url,idpName,user,pw):
         p = AAF_Auth.genericForm()
         p.feed(text)
         import getpass
@@ -163,91 +181,133 @@ class AAF_Auth():
         queue=Queue.Queue()
         for i in p.inputs.keys():
             if ('user' in i or 'User' in i) and p.inputs[i]==None:
-                userRequired=True
-            if ('pass' in i or 'Pass' in i) and p.inputs[i]==None:
-                passwordRequired=True
-        if userRequired:
-            wx.CallAfter(self.getUsername,queue)
-            user=queue.get()
-            if user==None:
-                raise Exception("Login canceled")
-        if passwordRequired:
-            wx.CallAfter(self.getPass,queue)
-            pw=queue.get()
-            if pw==None:
-                raise Exception("Login canceled")
-        for i in p.inputs.keys():
-            if ('user' in i or 'User' in i) and p.inputs[i]==None:
                 p.inputs[i] = user
             if ('pass' in i or 'Pass' in i) and p.inputs[i]==None:
                 p.inputs[i] = pw
-        nexturl = p.attrs['action']
+        try:
+            nexturl = p.attrs['action']
+        except:
+            nexturl = url
+        logger.debug('idp form inputs %s'%p.inputs)
+        for k in p.inputs.keys():
+            if 'RESET' in k.upper():
+                logger.debug('deleting the input %s from the attribute release form'%k)
+                del p.inputs[k]
         if  not 'http' in nexturl[0:4]:
             nexturl=url.split('/')[0]+'//'+url.split('/')[2]+nexturl
 
         r=session.post(nexturl,data=p.inputs,verify=False)
         return r
 
-    def getIdP(self):
-        return self.idp
+    def getUpdateDict(self):
+        d={}
+        d['aaf_idp']=self.idp
+        d['aaf_username']=self.username
+        return d
         
 
-    def __init__(self,s,destURL,parent,idp=None):
+    def __init__(self,s,authURL,parent,*args,**kwargs):
         self.parent=parent
-        self.idp=idp
-        r=s.get(destURL,verify=False)
-        if destURL in r.url: # We already have a valid session with the web service
-            logger.debug('AAF cycle unnecessary, we\'re already auth\'d to this service')
-            self.response=r
-            return
-
-        
-        if r.url.startswith('https://ds'): # we've been redirected to the AAF discovery service
-            logger.debug('AAF cycle sent us to the discovery service. Prompting for the correct IdP')
-            p = AAF_Auth.DSForm()
-            p.feed(r.text)
-            import Queue
-            queue=Queue.Queue()
-            wx.CallAfter(self.queryIdP,p.options,queue,self.idp)
-            res=queue.get()
-            if res==None:
-                raise Exception("Login cancled")
-            else:
-                (myidp,self.idp)=res
-            d={}
-            d['user_idp'] = myidp.encode('ascii')
-            d['Select']='Select'
-            nexturl = p.attrs['action']
-            if  not 'http' in nexturl[0:4]:
-                nexturl=r.url.split('/')[0]+'//'+r.url.split('/')[2]+nexturl
-            r=s.post(nexturl,data=d,verify=False)
-
+        if kwargs.has_key('aaf_idp'):
+            self.idp=kwargs['aaf_idp']
         else:
-            logger.debug('AAF cycle bypassed the discovery service. Perhaps the web service sent us directly to an IdP? This is unusual, but within spec')
-
-        if destURL in r.url: # If we have a session with the IdP and the IdP didn't ask to release attributes, we might already be at the destionation URL
-            self.response=r
-            return
-        
-        p=AAF_Auth.genericForm() # If we're no at the destURL we should be at either the IdP authentication page, or the IdP attribute release page
-        # Not tested. I think if we already have session with the idp, the IdP may return an attribute release form rather than a login form. the method self.idp should still work.
-        while (not p.inputs.has_key('SAMLResponse')):
-            if destURL in r.url: # I'm puzzled by this, I though the SAMLResponse would always come as a hidden field in a form from the IdP along with a redirect, but apparently not
-                self.response=r
-                return
-            r=self.processIdP(s,r.text,r.url)
-            p=AAF_Auth.genericForm()
-            p.feed(r.text)
-
-        if destURL in r.url: # We have succeeded
-            logger.debug('AAF cycle succeeded')
-            self.response=r
-            return
-        nexturl = p.attrs['action']
-        r=s.post(nexturl,data=p.inputs,verify=False) # We need one more post? This seems to be the behaviour on NeCTAR
-        if destURL in r.url: # We have succeeded
-            logger.debug('AAF Cycle succeeded with the extra post')
-            self.response=r
-            return
+            self.idp=None
+        if kwargs.has_key('aaf_username'):
+            self.username=kwargs['aaf_username']
         else:
-            raise Exception("We went through the whole AAF cycle, but didn't end up where the though we would. This is a bug. Please help us fix this up by sending an email/crash report")
+            self.username=None
+        self.passwd=None
+        self.destURL=authURL
+
+        if kwargs.has_key('progressDialog'):
+            self.progressDialog=kwargs['progressDialog']
+        else:
+            self.progressDialog=None
+        self.session=s
+
+    def auth_cycle(self):
+        self.idpoptions=self.getIdPChoices(self.session)
+        retry=True
+        while retry:
+            try:
+                r=self.session.get(self.destURL,verify=False)
+                if self.destURL in r.url: # We already have a valid session with the web service
+                    logger.debug('AAF cycle unnecessary, we\'re already auth\'d to this service')
+                    self.response=r
+                    return
+
+                import Queue
+                queue=Queue.Queue()
+                if self.idp==None or 'Select' in self.idp or self.idp == "" or self.username==None or self.username == "" or self.passwd==None or self.passwd=="":
+                    wx.CallAfter(self.queryIdPUserPass,self.idpoptions,queue,self.idp,self.username)
+                    res=queue.get()
+                    if res==None:
+                        raise Exception("Login cancelled")
+                    else:
+                        (myidp,self.idp,self.username,self.passwd)=res
+                        logger.debug('queryIdPUserPass set values for idp: %s user: %s.'%(self.idp,self.username))
+                
+                if r.url.startswith('https://ds'): # we've been redirected to the AAF discovery service
+                    logger.debug('AAF cycle sent us to the discovery service. Prompting for the correct IdP')
+                    p = AAF_Auth.DSForm()
+                    p.feed(r.text)
+                    logger.debug('querying for IdP, username and password, initial values: %s %s'%(self.idp,self.username))
+                    d={}
+                    d['user_idp'] = myidp.encode('ascii')
+                    d['Select']='Select'
+                    logger.debug('in auth_cycle, url is %s'%r.url)
+                    nexturl = p.attrs['action']
+                    if  not 'http' in nexturl[0:4]:
+                        nexturl=r.url.split('/')[0]+'//'+r.url.split('/')[2]+nexturl
+                    r=self.session.post(nexturl,data=d,verify=False)
+
+                else:
+                    logger.debug('AAF cycle bypassed the discovery service. Perhaps the web service sent us directly to an IdP? This is unusual, but within spec')
+
+                if self.destURL in r.url: # If we have a session with the IdP and the IdP didn't ask to release attributes, we might already be at the destionation URL
+                    self.response=r
+                    return
+                
+                p=AAF_Auth.genericForm() # If we're not at the destURL we should be at either the IdP authentication page, or the IdP attribute release page
+                # Not tested. I think if we already have session with the idp, the IdP may return an attribute release form rather than a login form. the method self.idp should still work.
+                loop=0
+                while (not p.inputs.has_key('SAMLResponse')):
+                    if self.destURL in r.url: # I'm puzzled by this, I though the SAMLResponse would always come as a hidden field in a form from the IdP along with a redirect, but apparently not
+                        self.response=r
+                        return
+                    logger.debug('processing text as if it was an IdP login form idp')
+                    r=self.processIdP(self.session,r.text,r.url,self.idp,self.username,self.passwd)
+                    logger.debug('processing text to look for a SAML response')
+                    p=AAF_Auth.genericForm()
+                    p.feed(r.text)
+                    reprompt=False
+                    for i in p.inputs.keys():
+                        if ('user' in i or 'User' in i):
+                            reprompt=True
+                    if reprompt:
+                        wx.CallAfter(self.queryIdPUserPass,self.idpoptions,queue,self.idp,self.username)
+                        res=queue.get()
+                        if res==None:
+                            raise Exception("Login cancled")
+                        else:
+                            oldidp=self.idp
+                            (myidp,self.idp,self.username,self.passwd)=res
+                            if oldidp!=self.idp:
+                                raise AAF_Auth.reset_exception
+
+                if self.destURL in r.url: # We have succeeded
+                    logger.debug('AAF cycle succeeded')
+                    retry=False
+                    self.response=r
+                    return
+                nexturl = p.attrs['action']
+                r=self.session.post(nexturl,data=p.inputs,verify=False) # We need one more post? This seems to be the behaviour on NeCTAR
+                if self.destURL in r.url: # We have succeeded
+                    logger.debug('AAF Cycle succeeded with the extra post')
+                    retry=False
+                    self.response=r
+                    return
+                else:
+                    raise Exception("We went through the whole AAF cycle, but didn't end up where the though we would. This is a bug. Please help us fix this up by sending an email/crash report")
+            except AAF_Auth.reset_exception as e:
+                pass

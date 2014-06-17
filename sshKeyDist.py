@@ -152,10 +152,16 @@ class KeyDist():
 
     class scanHostKeysThread(Thread):
         def __init__(self,keydistObject):
+            import shlex
             Thread.__init__(self)
             self.keydistObject = keydistObject
-            self.ssh_keygen_cmd = '{sshkeygen} -F {host} -f {known_hosts_file}'.format(sshkeygen=self.keydistObject.keyModel.sshpaths.sshKeyGenBinary,host=self.keydistObject.host,known_hosts_file=self.keydistObject.keyModel.sshpaths.sshKnownHosts)
-            self.ssh_keyscan_cmd = '{sshscan} -H {host}'.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host)
+            cmdlist=shlex.split('{sshkeygen} -F {host} -f {known_hosts_file}')
+            self.ssh_keygen_cmd=[]
+            for s in cmdlist:
+                self.ssh_keygen_cmd.append(s.format(sshkeygen=self.keydistObject.keyModel.sshpaths.sshKeyGenBinary,host=self.keydistObject.host,known_hosts_file=self.keydistObject.keyModel.sshpaths.sshKnownHosts))
+            self.ssh_keyscan_cmd=[]
+            for s in shlex.split('{sshscan} -H {host}'):
+                ssh_keyscan_cmd.append(s.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host))
             self._stop = Event()
 
         def stop(self):
@@ -165,7 +171,7 @@ class KeyDist():
             return self._stop.isSet()
 
         def getKnownHostKeys(self):
-            keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+            keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = keygen.communicate()
             keygen.wait()
             hostkeys=[]
@@ -181,7 +187,7 @@ class KeyDist():
             
 
         def scanHost(self):
-            scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+            scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = scan.communicate()
             scan.wait()
             hostkeys=[]
@@ -228,34 +234,36 @@ class KeyDist():
             path=fd.name
             fd.close()
             
-            ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,
-                                                                                                                                                                                                             login=self.keydistObject.username,
+            if self.keydistObject.username!=None and self.keydistObject.username!="":
+                #ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
+                ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile={nonexistantpath}','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
+                cmd=[]
+                for s in ssh_cmd:
+                    cmd.append(s.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path))
+                logger.debug('testAuthThread: attempting: %s'%cmd)
+                ssh = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
+                stdout, stderr = ssh.communicate()
+                ssh.wait()
 
-                                                                                                                                                                                                             host=self.keydistObject.host,
-                                                                                                                                                                                                             nonexistantpath=path)
-
-            logger.debug('testAuthThread: attempting: ' + ssh_cmd)
-            ssh = subprocess.Popen(ssh_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
-            stdout, stderr = ssh.communicate()
-            ssh.wait()
-
-            logger.debug("testAuthThread %i: stdout of ssh command: "%threadid + str(stdout))
-            logger.debug("testAuthThread %i: stderr of ssh command: "%threadid + str(stderr))
+                logger.debug("testAuthThread %i: stdout of ssh command: "%threadid + str(stdout))
+                logger.debug("testAuthThread %i: stderr of ssh command: "%threadid + str(stderr))
 
 
-            if 'Could not resolve hostname' in stdout:
-                logger.debug('Network error.')
-                newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_NETWORK_ERROR,self.keydistObject)
-            elif 'success_testauth' in stdout:
-                logger.debug("testAuthThread %i: got success_testauth in stdout :)"%threadid)
-                self.keydistObject.authentication_success = True
-                newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
-            elif 'Agent admitted' in stdout:
-                logger.debug("testAuthThread %i: the ssh agent has an error. Try rebooting the computer")
-                self.keydistObject.cancel("Sorry, there is a problem with the SSH agent.\nThis sort of thing usually occurs if you delete your key and create a new one.\nThe easiest solution is to reboot your computer and try again.")
-                return
+                if 'Could not resolve hostname' in stdout:
+                    logger.debug('Network error.')
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_NETWORK_ERROR,self.keydistObject)
+                elif 'success_testauth' in stdout:
+                    logger.debug("testAuthThread %i: got success_testauth in stdout :)"%threadid)
+                    self.keydistObject.authentication_success = True
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
+                elif 'Agent admitted' in stdout:
+                    logger.debug("testAuthThread %i: the ssh agent has an error. Try rebooting the computer")
+                    self.keydistObject.cancel("Sorry, there is a problem with the SSH agent.\nThis sort of thing usually occurs if you delete your key and create a new one.\nThe easiest solution is to reboot your computer and try again.")
+                    return
+                else:
+                    logger.debug("testAuthThread %i: did not see success_testauth in stdout, posting EVT_KEYDIST_AUTHFAIL event"%threadid)
+                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
             else:
-                logger.debug("testAuthThread %i: did not see success_testauth in stdout, posting EVT_KEYDIST_AUTHFAIL event"%threadid)
                 newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
 
             if (not self.stopped()):
@@ -323,18 +331,17 @@ class KeyDist():
                 self.obj.copyID()
                 logger.debug("KeyDist.CopyIDThread: copyID returned without error")
                 event = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_TESTAUTH,self.keydistObject)
-                # If the object represented an attempt at logging onto AAF, then we will try to get the IdP and save it for next time.
-                # If its not an AAF login, we will catch the exception and pass
+                # The authentication process may pass back parameters (such as the IdP and user@IdP that we wish to save and prepopulate for the user next time
                 try:
-                    idp=self.obj.getIdP()
-                    self.keydistObject.updateDict['idp']=idp
+                    ud=self.obj.getUpdateDict()
+                    self.keydistObject.updateDict.update(ud)
                 except Exception as e:
                     pass
                 # This try catch means that if, in the course of authenticing the user, the authentication mechanism was able to tell us the username
                 # That username will be updated. Example. Authenticing via AAF, I know I'm at Monash, and my Monash username is chines.
                 # Monash will tell CVL what my email address is. CVL can look up my CVL username based on my email address.
                 try:
-                    newusername=self.obj.getUsername()
+                    newusername=self.obj.getLocalUsername()
                     self.keydistObject.updateDict['username']=newusername
                 except Exception as e:
                     pass
@@ -344,7 +351,6 @@ class KeyDist():
                 return
             if (not self.stopped()):
                 wx.PostEvent(self.keydistObject.notifywindow.GetEventHandler(), event)
-            self.keydistObject.keyModel.copiedID.set()
             self.keydistObject.keycopied.set()
             self.keydistObject.__dict__.update(self.keydistObject.updateDict)
 
@@ -389,12 +395,12 @@ class KeyDist():
                 with open(pubKeyPath,'r') as f:
                     pubkey=f.read()
                 # Here we make the decision as to how to copy the public key to the users authorized keys file. This of this as a factory pattern, although I'm sure there are neater ways to implement it.
-                if event.keydist.keyModel.useAAF():
-                    obj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,**event.keydist.jobParams)
+                if event.keydist.authURL!=None:
+                    event.keydist.copyidobj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
                 else:
-                    obj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings)
+                    event.keydist.copyidobj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog,authorizedKeysFile=event.keydist.authorizedKeysFile)
                 logger.debug("received COPYID event")
-                t = KeyDist.CopyIDThread(event.keydist,obj=obj)
+                t = KeyDist.CopyIDThread(event.keydist,obj=event.keydist.copyidobj)
                 t.setDaemon(True)
                 t.start()
                 event.keydist.threads.append(t)
@@ -534,7 +540,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,removeKeyOnExit=False,startupinfo=None,creationflags=0,jobParams={}):
+    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,authorizedKeysFile=None,jobParams={},*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -596,16 +602,26 @@ class KeyDist():
         self.callback_fail=None
         self.callback_error = None
         self._canceled=Event()
+        self.keyModel = keyModel
         self.removeKeyOnExit=Event()
         self.keyCreated=Event()
-        if removeKeyOnExit:
+        if self.keyModel.isTemporaryKey():
             self.removeKeyOnExit.set()
         self.stopAgentOnExit=Event()
-        self.keyModel = keyModel
         self.startupinfo = startupinfo
         self.creationflags = creationflags
         self.shuttingDown=Event()
         self.jobParams=jobParams
+        self.authURL=authURL
+        self.authorizedKeysFile=authorizedKeysFile
+        if self.jobParams.has_key('aaf_idp'):
+            self.aaf_idp=self.jobParams['aaf_idp']
+        else:
+            self.aaf_idp=None
+        if self.jobParams.has_key('aaf_username'):
+            self.aaf_username=self.jobParams['aaf_username']
+        else:
+            self.aaf_username=None
 
     def GetKeyPassphrase(self,incorrect=False):
         if (incorrect):
@@ -637,7 +653,7 @@ class KeyDist():
 
     def getPassphrase(self,reason=None):
         from CreateNewKeyDialog import CreateNewKeyDialog
-        createNewKeyDialog = CreateNewKeyDialog(self.parentWindow, self.progressDialog, wx.ID_ANY, 'MASSIVE/CVL Launcher Private Key', self.keyModel.getPrivateKeyFilePath(),self.displayStrings, displayMessageBoxReportingSuccess=False)
+        createNewKeyDialog = CreateNewKeyDialog(self.parentWindow, self.progressDialog, wx.ID_ANY, self.parentWindow.programName, self.keyModel.getPrivateKeyFilePath(),self.displayStrings, displayMessageBoxReportingSuccess=False)
         try:
             wx.EndBusyCursor()
             stoppedBusyCursor = True
@@ -679,7 +695,7 @@ class KeyDist():
             if self.keyCreated.isSet():
                 logger.debug("sshKeyDist.deleteRemoveShutdown: self.keyCreated.isSet() is True.")
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting remote key.")
-                self.keyModel.deleteRemoteKey(host=self.host,username=self.username)
+                self.copyidobj.deleteRemoteKey(host=self.host,username=self.username)
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting temporary key and removing key from agent.")
                 self.keyModel.deleteKey()
                 #logger.debug("sshKeyDist.deleteRemoveShutdown: removing key from agent.")
