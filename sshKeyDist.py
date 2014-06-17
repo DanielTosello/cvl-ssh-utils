@@ -152,10 +152,16 @@ class KeyDist():
 
     class scanHostKeysThread(Thread):
         def __init__(self,keydistObject):
+            import shlex
             Thread.__init__(self)
             self.keydistObject = keydistObject
-            self.ssh_keygen_cmd = '{sshkeygen} -F {host} -f {known_hosts_file}'.format(sshkeygen=self.keydistObject.keyModel.sshpaths.sshKeyGenBinary,host=self.keydistObject.host,known_hosts_file=self.keydistObject.keyModel.sshpaths.sshKnownHosts)
-            self.ssh_keyscan_cmd = '{sshscan} -H {host}'.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host)
+            cmdlist=shlex.split('{sshkeygen} -F {host} -f {known_hosts_file}')
+            self.ssh_keygen_cmd=[]
+            for s in cmdlist:
+                self.ssh_keygen_cmd.append(s.format(sshkeygen=self.keydistObject.keyModel.sshpaths.sshKeyGenBinary,host=self.keydistObject.host,known_hosts_file=self.keydistObject.keyModel.sshpaths.sshKnownHosts))
+            self.ssh_keyscan_cmd=[]
+            for s in shlex.split('{sshscan} -H {host}'):
+                ssh_keyscan_cmd.append(s.format(sshscan=self.keydistObject.keyModel.sshpaths.sshKeyScanBinary,host=self.keydistObject.host))
             self._stop = Event()
 
         def stop(self):
@@ -165,7 +171,7 @@ class KeyDist():
             return self._stop.isSet()
 
         def getKnownHostKeys(self):
-            keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+            keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = keygen.communicate()
             keygen.wait()
             hostkeys=[]
@@ -181,7 +187,7 @@ class KeyDist():
             
 
         def scanHost(self):
-            scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+            scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = scan.communicate()
             scan.wait()
             hostkeys=[]
@@ -229,10 +235,13 @@ class KeyDist():
             fd.close()
             
             if self.keydistObject.username!=None and self.keydistObject.username!="":
-                ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
-
-                logger.debug('testAuthThread: attempting: ' + ssh_cmd)
-                ssh = subprocess.Popen(ssh_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
+                #ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
+                ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile={nonexistantpath}','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
+                cmd=[]
+                for s in ssh_cmd:
+                    cmd.append(s.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path))
+                logger.debug('testAuthThread: attempting: %s'%cmd)
+                ssh = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
                 stdout, stderr = ssh.communicate()
                 ssh.wait()
 
