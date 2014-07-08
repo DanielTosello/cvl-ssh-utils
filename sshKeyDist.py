@@ -170,7 +170,10 @@ class KeyDist():
             return self._stop.isSet()
 
         def getKnownHostKeys(self):
-            keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+	    if sys.platform.startswith("win"):
+                keygen = subprocess.Popen(" ".join(self.ssh_keygen_cmd),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+	    else:
+                keygen = subprocess.Popen(self.ssh_keygen_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=False,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = keygen.communicate()
             keygen.wait()
             hostkeys=[]
@@ -186,7 +189,10 @@ class KeyDist():
             
 
         def scanHost(self):
-            scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+	    if sys.platform.startswith("win"):
+                scan = subprocess.Popen(" ".join(self.ssh_keyscan_cmd),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
+            else:
+                scan = subprocess.Popen(self.ssh_keyscan_cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=False,universal_newlines=True,startupinfo=self.keydistObject.startupinfo,creationflags=self.keydistObject.creationflags)
             stdout,stderr = scan.communicate()
             scan.wait()
             hostkeys=[]
@@ -235,12 +241,15 @@ class KeyDist():
             
             if self.keydistObject.username!=None and self.keydistObject.username!="":
                 #ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
-                ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile={nonexistantpath}','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
+                ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile="{nonexistantpath}"','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
                 cmd=[]
                 for s in ssh_cmd:
                     cmd.append(s.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path))
                 logger.debug('testAuthThread: attempting: %s'%cmd)
-                ssh = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
+		if sys.platform.startswith("win"):
+                    ssh = subprocess.Popen(" ".join(cmd),shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
+		else:
+                    ssh = subprocess.Popen(cmd,shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
                 stdout, stderr = ssh.communicate()
                 ssh.wait()
 
