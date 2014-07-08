@@ -57,7 +57,10 @@ class shibbolethDance():
             except:
                 key=self.pubkey
 
-            import ssh
+            try:
+                import ssh
+            except:
+                import paramiko as ssh
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:

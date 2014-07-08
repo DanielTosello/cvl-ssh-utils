@@ -27,7 +27,10 @@ class genericCopyID():
 
     def copyID(self):
 
-        import ssh
+        try:
+            import ssh
+        except:
+            import paramiko as ssh
         import Queue
         sshClient = ssh.SSHClient()
         sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
@@ -96,7 +99,10 @@ class genericCopyID():
             except:
                 key=self.pubkey
 
-            import ssh
+            try:
+                import ssh
+            except:
+                import paramiko as ssh
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:

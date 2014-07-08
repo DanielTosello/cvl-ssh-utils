@@ -1,5 +1,4 @@
 import os
-import ssh
 import wx
 import wx.lib.newevent
 import re
