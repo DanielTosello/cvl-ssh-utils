@@ -254,7 +254,19 @@ class KeyModel():
         # "Warning: Use communicate() rather than .stdin.write, .stdout.read or .stderr.read to avoid deadlocks
         # due to any of the other OS pipe buffers filling up and blocking the child process."
 
+        timer=threading.Timer(5,self.sshAgentProcess.kill)
+        timer.start()
         stdout,stderr = self.sshAgentProcess.communicate()
+        timer.cancel()
+        if self.sshAgentProcess.returncode!=0:
+            raise Exception("""
+The SSH agent failed to start properly. 
+We see this occasionally on Windows computers. 
+It usually seems to be fixed up rebooting, or simply trying again.
+IF you have a procedure that reliably produces this bug, please tell us. We are having a hard time fixing it properly because it only 
+happens occasionally.
+""")
+
         if stderr is not None and stderr!="":
             logger.debug("KeyModel.startAgent stderr:\n" + stderr)
         for line in stdout.split("\n"):
