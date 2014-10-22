@@ -234,45 +234,17 @@ class KeyDist():
             # but since the pub key is extracted from the agent not the identity file I can't see anyway an attacker could use this to trick a user into uploading the attackers key.
             threadid = threading.currentThread().ident
             logger.debug("testAuthThread %i: started"%threadid)
-            import tempfile
-            fd=tempfile.NamedTemporaryFile(delete=True)
-            path=fd.name
-            fd.close()
-            
-            if self.keydistObject.username!=None and self.keydistObject.username!="":
-                #ssh_cmd = '{sshbinary} -o ConnectTimeout=10 -o IdentityFile={nonexistantpath} -o PasswordAuthentication=no -o ChallengeResponseAuthentication=no -o KbdInteractiveAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=no -l {login} {host} echo "success_testauth"'.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path)
-                ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile="{nonexistantpath}"','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
-                cmd=[]
-                for s in ssh_cmd:
-                    cmd.append(s.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.keydistObject.username, host=self.keydistObject.host, nonexistantpath=path))
-                logger.debug('testAuthThread: attempting: %s'%cmd)
-		if sys.platform.startswith("win"):
-                    ssh = subprocess.Popen(" ".join(cmd),shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
-		else:
-                    ssh = subprocess.Popen(cmd,shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
-                stdout, stderr = ssh.communicate()
-                ssh.wait()
-
-                logger.debug("testAuthThread %i: stdout of ssh command: "%threadid + str(stdout))
-                logger.debug("testAuthThread %i: stderr of ssh command: "%threadid + str(stderr))
-
-
-                if 'Could not resolve hostname' in stdout:
-                    logger.debug('Network error.')
-                    newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_NETWORK_ERROR,self.keydistObject)
-                elif 'success_testauth' in stdout:
-                    logger.debug("testAuthThread %i: got success_testauth in stdout :)"%threadid)
-                    self.keydistObject.authentication_success = True
+            try:
+                if (self.keydistObject.authorise.testAuth(keyModel=self.keydistObject.keyModel,username=self.keydistObject.username,host=self.keydistObject.host)):
                     newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
-                elif 'Agent admitted' in stdout:
-                    logger.debug("testAuthThread %i: the ssh agent has an error. Try rebooting the computer")
-                    self.keydistObject.cancel("Sorry, there is a problem with the SSH agent.\nThis sort of thing usually occurs if you delete your key and create a new one.\nThe easiest solution is to reboot your computer and try again.")
-                    return
                 else:
-                    logger.debug("testAuthThread %i: did not see success_testauth in stdout, posting EVT_KEYDIST_AUTHFAIL event"%threadid)
                     newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
-            else:
+            except Exception as e:
+                import traceback
+                logger.debug("testAuth failed with exception %s"%e)
+                logger.debug(traceback.format_exc())
                 newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
+
 
             if (not self.stopped()):
                 logger.debug("testAuthThread %i: self.stopped() == False, so posting event: "%threadid + str(newevent))
@@ -333,10 +305,13 @@ class KeyDist():
 
         def run(self):
             try:
-                pubKeyPath=self.keydistObject.keyModel.getPrivateKeyFilePath()+".pub"
-                with open(pubKeyPath,'r') as f:
-                    pubkey=f.read()
-                self.obj.copyID()
+                pubkey=self.keydistObject.keyModel.getPubKey()
+                try:
+                    self.keydistObject.authorise.copyID(keyModel=self.keydistObject.keyModel)
+                except Exception as e:
+                    logger.debug('CopyIDThread, copyID failed with exception: '+str(e))
+                    print('CopyIDThread, copyID failed with exception: '+str(e))
+                    raise e
                 logger.debug("KeyDist.CopyIDThread: copyID returned without error")
                 event = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_TESTAUTH,self.keydistObject)
                 # The authentication process may pass back parameters (such as the IdP and user@IdP that we wish to save and prepopulate for the user next time
@@ -396,19 +371,12 @@ class KeyDist():
             event.Skip()
 
         def copyid(event):
-            import cvlsshutils.cvl_shib_auth
-            import cvlsshutils.password_copyid
             if (event.GetId() == KeyDist.EVT_KEYDIST_COPYID):
                 pubKeyPath=event.keydist.keyModel.getPrivateKeyFilePath()+".pub"
                 with open(pubKeyPath,'r') as f:
                     pubkey=f.read()
-                # Here we make the decision as to how to copy the public key to the users authorized keys file. This of this as a factory pattern, although I'm sure there are neater ways to implement it.
-                if event.keydist.authURL!=None:
-                    event.keydist.copyidobj=cvlsshutils.cvl_shib_auth.shibbolethDance(pubkey=pubkey,parent=event.keydist.parentWindow,displayStrings=event.keydist.displayStrings,url=event.keydist.authURL,aaf_username=event.keydist.aaf_username,aaf_idp=event.keydist.aaf_idp,progressDialog=event.keydist.progressDialog)
-                else:
-                    event.keydist.copyidobj=cvlsshutils.password_copyid.genericCopyID(pubkey=pubkey,parent=event.keydist.parentWindow,host=event.keydist.host,username=event.keydist.username,displayStrings=event.keydist.displayStrings,progressDialog=event.keydist.progressDialog,authorizedKeysFile=event.keydist.authorizedKeysFile)
                 logger.debug("received COPYID event")
-                t = KeyDist.CopyIDThread(event.keydist,obj=event.keydist.copyidobj)
+                t = KeyDist.CopyIDThread(event.keydist,obj=event.keydist.authorise)
                 t.setDaemon(True)
                 t.start()
                 event.keydist.threads.append(t)
@@ -548,7 +516,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,username,host,configName,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,authURL=None,aaf_idp=None,aaf_username=None,authorizedKeysFile=None,jobParams={},*args,**kwargs):
+    def __init__(self,parentWindow,progressDialog,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,username=None,host=None,authURL=None,aaf_idp=None,aaf_username=None,ec2_access_key=None,ec2_secret_key=None,authorizedKeysFile=None,copymethod='passwordAuth',*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -595,7 +563,6 @@ class KeyDist():
         self.progressDialog = progressDialog
         self.username = username
         self.host = host
-        self.configName = configName
         self.displayStrings=displayStrings
         self.notifywindow = notifywindow
         self.sshKeyPath = ""
@@ -605,7 +572,6 @@ class KeyDist():
         self.password = None
         self.pubkeylock = Lock()
         self.keycopied=Event()
-        self.authentication_success = False
         self.callback_success=None
         self.callback_fail=None
         self.callback_error = None
@@ -619,17 +585,13 @@ class KeyDist():
         self.startupinfo = startupinfo
         self.creationflags = creationflags
         self.shuttingDown=Event()
-        self.jobParams=jobParams
-        self.authURL=authURL
-        self.authorizedKeysFile=authorizedKeysFile
-        if self.jobParams.has_key('aaf_idp'):
-            self.aaf_idp=self.jobParams['aaf_idp']
-        else:
-            self.aaf_idp=None
-        if self.jobParams.has_key('aaf_username'):
-            self.aaf_username=self.jobParams['aaf_username']
-        else:
-            self.aaf_username=None
+
+
+        import cvlsshutils.authorise
+        self.authorise=cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=authURL,aaf_username=aaf_username,aaf_idp=aaf_idp,ec2_access_key=ec2_access_key,ec2_secret_key=ec2_secret_key,keydistObject=self)
+
+
+
 
     def GetKeyPassphrase(self,incorrect=False):
         if (incorrect):
@@ -703,9 +665,15 @@ class KeyDist():
             if self.keyCreated.isSet():
                 logger.debug("sshKeyDist.deleteRemoveShutdown: self.keyCreated.isSet() is True.")
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting remote key.")
-                self.copyidobj.deleteRemoteKey(host=self.host,username=self.username)
+                try:
+                    self.authorise.deleteRemoteKey(host=self.host,username=self.username)
+                except:
+                    pass
                 logger.debug("sshKeyDist.deleteRemoveShutdown: deleting temporary key and removing key from agent.")
-                self.keyModel.deleteKey()
+                try:
+                    self.keyModel.deleteKey()
+                except:
+                    pass
                 #logger.debug("sshKeyDist.deleteRemoveShutdown: removing key from agent.")
                 #self.keyModel.removeKeyFromAgent()
             else:
