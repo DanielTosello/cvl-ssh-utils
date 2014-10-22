@@ -33,11 +33,9 @@ class passwordAuth():
             self.host=host
         if self.username==None:
             raise Exception("I don't know what username you are trying to log in with")
-        print "in passwordAuth.copyID"
         import sys
         self.keyModel=keyModel
         self.pubkey=self.keyModel.getPubKey()
-        print "got my pubkey"
 
         try:
             import ssh
@@ -135,7 +133,6 @@ class passwordAuth():
                 logger.debug(traceback.format_exc())
 
     def testAuth(self,keyModel,username=None,host=None):
-        print "in passwordAuth.textAuth"
         if username!=None:
             self.username=username
         if host!=None:
