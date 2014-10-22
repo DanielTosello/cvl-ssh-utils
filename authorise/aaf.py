@@ -2,16 +2,19 @@ import requests
 import wx
 import cvlsshutils.RequestsSessionSingleton
 import cvlsshutils.AAF_Auth
+import passwordAuth
 import json
             
-class shibbolethDance():
+class aaf(passwordAuth.passwordAuth):
+# inherit the deleteRemoveKey and testAuth methods from the password module
 
 
-    def __init__(self,pubkey,parent,authorizedKeysFile=None,*args,**kwargs):
-        self.pubkey=pubkey
+    def __init__(self,parent,keydistObject,authorizedKeysFile=None,*args,**kwargs):
         self.parent=parent
         self.kwargs=kwargs
+        self.pubkey=None
         self.authorizedKeysFile=authorizedKeysFile
+        self.keydistObject=keydistObject
         if self.authorizedKeysFile==None:
             self.authorizedKeysFile="~/.ssh/authorized_keys"
 
@@ -37,7 +40,9 @@ class shibbolethDance():
             raise Exception('Username not set by the cvl_shib_auth module. (It really should have been)')
 
 
-    def copyID(self):
+    def copyID(self,keyModel,username=None,host=None):
+        self.keyModel=keyModel
+        self.pubkey=self.keyModel.getPubKey()
 
         # Use of a singleton here means that we should be able to do SSO on any AAF/Shibolleth web service. However we might have to guess the IdP.
         self.session=cvlsshutils.RequestsSessionSingleton.RequestsSessionSingleton().GetSession()
@@ -45,33 +50,9 @@ class shibbolethDance():
         auth=cvlsshutils.AAF_Auth.AAF_Auth(self.session,destURL,parent=self.parent,**self.kwargs)
         auth.auth_cycle()
         self.updateDict=auth.getUpdateDict()
-        self.postKey(destURL)
+        try:
+            self.postKey(destURL)
+        except Exception as e:
+            raise e
 
-    def deleteRemoteKey(self,host,username):
-        from logger.Logger import logger
-        import traceback
-        if self.pubkey!=None:
 
-            try:
-                key=self.pubkey.split(' ')[1]
-            except:
-                key=self.pubkey
-
-            try:
-                import ssh
-            except:
-                import paramiko as ssh
-            sshClient = ssh.SSHClient()
-            sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
-            try:
-                sshClient.connect(hostname=host,timeout=10,username=username,password=None,allow_agent=True,look_for_keys=False)
-                cmd="sed \'\\#{key}# D\' -i {authorizedKeysFile}"
-                command = cmd.format(key=key,authorizedKeysFile=self.authorizedKeysFile)
-                (stdin,stdout,stderr)=sshClient.exec_command(command)
-                logger.debug("deleted remote key")
-                err=stderr.readlines()
-                if err!=[]:
-                    raise Exception("unable to delete remote key")
-            except:
-                logger.debug("unable to delete remote key")
-                logger.debug(traceback.format_exc())

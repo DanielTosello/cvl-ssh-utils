@@ -123,6 +123,8 @@ class KeyModel():
         self.copiedID=threading.Event()
         self.startupinfo=startupinfo
         self.creationflags=creationflags
+        self.stopAgentOnExit=threading.Event()
+        self.agentRunning=threading.Event()
 #        self._useAAF=False
 #
 #    def useAAF(self,value=None,url=None):
@@ -132,6 +134,22 @@ class KeyModel():
 #        return self._useAAF
 #
        
+    def getPubKey(self):
+        pubKeyPath=self.getPrivateKeyFilePath()+".pub"
+        with open(pubKeyPath,'r') as f:
+            pubkey=f.read()
+            return pubkey
+        return None
+
+    def getFingerprint(self):
+        try:
+            self.listKey()
+        except: # exception occurs because we are unable to contact the agent
+            self.startAgent()
+            self.listKey()
+        line=self.fingerprintAgent()
+        return line.split(" ")[1]
+
 
     def getFingerprintAndKeyTypeFromPrivateKeyFile(self):
         logger.debug("KeyModel.getFingerprintAndKeyTypeFromPrivateKeyFile")
@@ -179,6 +197,8 @@ class KeyModel():
 
 
     def stopAgent(self):
+        if not self.stopAgentOnExit.isSet():
+            return
         logger.debug("KeyModel.stopAgent: stopping the agent")
 
         logger.debug("KeyModel.stopAgent: On Windows, we will stop charade.exe or ssh-agent.exe (whichever one is running),")
@@ -231,6 +251,14 @@ class KeyModel():
 
 
     def startAgent(self):
+
+        if self.agentRunning.isSet():
+            return
+        if self.agentIsRunning():
+            self.agentRunning.set()
+            return
+
+        self.stopAgentOnExit.set()
 
         if self.startedAgent.isSet() and 'SSH_AGENT_PID' in os.environ and pidIsRunning(os.environ['SSH_AGENT_PID']):
             logger.debug("KeyModel.startAgent: Bailing out, because agent is already running.")
@@ -316,7 +344,9 @@ happens occasionally.
             logger.debug("KeyModel.startAgent: " + message)
             raise Exception(message)
         logger.debug("KeyModel.startAgent: Setting startedAgent.")
-        self.startedAgent.set()
+        if self.agentIsRunning():
+            self.startedAgent.set()
+            self.agentRunning.set()
         try:
             logger.debug("KeyModel.startAgent: SSH_AUTH_SOCK = " + os.environ['SSH_AUTH_SOCK'])
             logger.debug("KeyModel.startAgent: SSH_AGENT_PID = " + os.environ['SSH_AGENT_PID'])
@@ -728,6 +758,12 @@ happens occasionally.
 
         return True
 
+    def agentIsRunning(self):
+        try:
+            self.listKey()
+            return True
+        except:
+            return False
 
     def listKey(self):
         import re
