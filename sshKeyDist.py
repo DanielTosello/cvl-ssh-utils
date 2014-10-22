@@ -310,7 +310,6 @@ class KeyDist():
                     self.keydistObject.authorise.copyID(keyModel=self.keydistObject.keyModel)
                 except Exception as e:
                     logger.debug('CopyIDThread, copyID failed with exception: '+str(e))
-                    print('CopyIDThread, copyID failed with exception: '+str(e))
                     raise e
                 logger.debug("KeyDist.CopyIDThread: copyID returned without error")
                 event = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_TESTAUTH,self.keydistObject)
