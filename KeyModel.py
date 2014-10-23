@@ -148,7 +148,10 @@ class KeyModel():
             self.startAgent()
             self.listKey()
         line=self.fingerprintAgent()
-        return line.split(" ")[1]
+        if line!=None:
+            return line.split(" ")[1]
+        else:
+            return None
 
 
     def getFingerprintAndKeyTypeFromPrivateKeyFile(self):
