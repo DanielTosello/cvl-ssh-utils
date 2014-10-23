@@ -140,7 +140,10 @@ class AAF_Auth():
         o=[list(t) for t in zip(*options)]
 
         dlg=AAF_Auth.IdPUserPassDialog(parent=self.parent,id=wx.ID_ANY,options=o[1],idp=idp,user=username)
-        wx.EndBusyCursor()
+        try:
+            wx.EndBusyCursor()
+        except:
+            pass
         self.progressDialog.Hide()
         if dlg.ShowModal()==wx.ID_OK:
             res=dlg.getIdP()
