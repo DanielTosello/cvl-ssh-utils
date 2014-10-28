@@ -37,11 +37,9 @@ class passwordAuth():
             self.host=host
         if self.username==None:
             raise Exception("I don't know what username you are trying to log in with")
-        print "in passwordAuth.copyID"
         import sys
         self.keyModel=keyModel
         self.pubkey=self.keyModel.getPubKey()
-        print "got my pubkey"
 
         try:
             import ssh
@@ -139,7 +137,6 @@ class passwordAuth():
                 logger.debug(traceback.format_exc())
 
     def testAuth(self,keyModel,username=None,host=None):
-        print "in passwordAuth.testAuth"
         if username!=None:
             self.username=username
         if host!=None:
@@ -159,26 +156,16 @@ class passwordAuth():
         auth=False
         try:
         
-            print "begin try"
             ssh_cmd = ['{sftpBinary}','-o','ConnectTimeout=10','-o','IdentityFile="{nonexistantpath}"','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-P','{port}','{login}@{host}']
             cmd=[]
-            print "self.port is %s"%self.port
             for s in ssh_cmd:
                 cmd.append(s.format(sftpBinary=self.keydistObject.keyModel.sshpaths.sftpBinary,login=self.username, host=self.host, nonexistantpath=path,port=self.port))
             logger.debug('testAuthThread: attempting: %s'%cmd)
-            print "sftp command is %s"%cmd
             if sys.platform.startswith("win"):
                 ssh = subprocess.Popen(" ".join(cmd),shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
             else:
-                print "popen"
                 ssh = subprocess.Popen(cmd,shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE,universal_newlines=True, startupinfo=self.keydistObject.startupinfo, creationflags=self.keydistObject.creationflags)
-            print "%s"%(" ".join(cmd))
-            print "communicate"
             stdout, stderr = ssh.communicate('quit\n\n')
-            #ssh.wait()
-            print stdout
-            print stderr
-            print ssh.returncode
 
             logger.debug("passwordAuth.testAuth: stdout of ssh command: " + str(stdout))
             logger.debug("passwordAuth.testAuth: stderr of ssh command: " + str(stderr))
@@ -189,8 +176,6 @@ class passwordAuth():
                 auth=False
         except Exception as e:
             import traceback
-            print e
-            print traceback.format_exc()
             logger.debug("passwordAuth.testAuth raised an exception %s"%e)
             logger.debug(traceback.format_exc())
             raise e
