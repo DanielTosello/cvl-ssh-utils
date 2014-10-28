@@ -41,6 +41,7 @@ class sshpaths():
                 f = lambda x: os.path.join(launcherModulePath, self.OPENSSH_BUILD_DIR, 'bin', x)
 
             sshBinary        = self.double_quote(f('ssh.exe'))
+            sftpBinary        = self.double_quote(f('sftp.exe'))
             sshKeyGenBinary  = self.double_quote(f('ssh-keygen.exe'))
             sshKeyScanBinary = self.double_quote(f('ssh-keyscan.exe'))
             if temporaryKey:
@@ -54,6 +55,7 @@ class sshpaths():
             chmodBinary      = self.double_quote(f('chmod.exe'))
         elif sys.platform.startswith('darwin'):
             sshBinary        = '/usr/bin/ssh'
+            sftpBinary        = '/usr/bin/sftp'
             sshKeyGenBinary  = '/usr/bin/ssh-keygen'
             sshKeyScanBinary = '/usr/bin/ssh-keyscan'
             sshAgentBinary   = '/usr/bin/ssh-agent'
@@ -62,6 +64,7 @@ class sshpaths():
             chmodBinary      = '/bin/chmod'
         else:
             sshBinary        = '/usr/bin/ssh'
+            sftpBinary        = '/usr/bin/sftp'
             sshKeyGenBinary  = '/usr/bin/ssh-keygen'
             sshKeyScanBinary = '/usr/bin/ssh-keyscan'
             sshAgentBinary   = '/usr/bin/ssh-agent'
@@ -69,7 +72,7 @@ class sshpaths():
             chownBinary      = '/bin/chown'
             chmodBinary      = '/bin/chmod'
  
-        return (sshBinary, sshKeyGenBinary, sshAgentBinary, sshAddBinary, sshKeyScanBinary, chownBinary, chmodBinary,)
+        return (sshBinary, sshKeyGenBinary, sshAgentBinary, sshAddBinary, sshKeyScanBinary, chownBinary, chmodBinary,sftpBinary,)
     
     def ssh_files(self):
         known_hosts_file = os.path.join(expanduser('~'), '.ssh', 'known_hosts')
@@ -78,7 +81,7 @@ class sshpaths():
         return (sshKeyPath,known_hosts_file,)
 
     def __init__(self, keyFileName, massiveLauncherConfig=None, massiveLauncherPreferencesFilePath=None, temporaryKey=False):
-        (sshBinary, sshKeyGenBinary, sshAgentBinary, sshAddBinary, sshKeyScanBinary,chownBinary, chmodBinary,) = self.ssh_binaries(temporaryKey)
+        (sshBinary, sshKeyGenBinary, sshAgentBinary, sshAddBinary, sshKeyScanBinary,chownBinary, chmodBinary,sftpBinary,) = self.ssh_binaries(temporaryKey)
         self.keyFileName                = keyFileName
         self.massiveLauncherConfig      = massiveLauncherConfig
         self.massiveLauncherPreferencesFilePath = massiveLauncherPreferencesFilePath
@@ -93,6 +96,7 @@ class sshpaths():
 
         self.sshKeyPath                 = sshKeyPath
         self.sshKnownHosts              = sshKnownHosts
+        self.sftpBinary                 = sftpBinary
 
 
 class KeyModel():

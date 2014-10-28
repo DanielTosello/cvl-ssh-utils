@@ -588,7 +588,7 @@ class KeyDist():
 
 
         import cvlsshutils.authorise
-        self.authorise=cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=authURL,aaf_username=aaf_username,aaf_idp=aaf_idp,ec2_access_key=ec2_access_key,ec2_secret_key=ec2_secret_key,keydistObject=self)
+        self.authorise=cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=authURL,aaf_username=aaf_username,aaf_idp=aaf_idp,ec2_access_key=ec2_access_key,ec2_secret_key=ec2_secret_key,keydistObject=self,**kwargs)
 
 
 
