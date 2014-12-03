@@ -1,6 +1,7 @@
 import passwordAuth
 import aaf
 import boto
+import ASyncAuthorise
 class authorise(object):
     def factory(copymethod,*args,**kwargs):
         if copymethod=='passwordAuth':
@@ -9,5 +10,7 @@ class authorise(object):
             return aaf.aaf(*args,**kwargs)
         if copymethod=='ec2':
             return ec2.ec2(*args,**kwargs)
+        if copymethod=='ASyncAuth':
+            return ASyncAuthorise.ASyncAuthorise(*args,**kwargs)
     factory=staticmethod(factory)
 

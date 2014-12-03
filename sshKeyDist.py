@@ -235,7 +235,7 @@ class KeyDist():
             threadid = threading.currentThread().ident
             logger.debug("testAuthThread %i: started"%threadid)
             try:
-                if (self.keydistObject.authorise.testAuth(keyModel=self.keydistObject.keyModel,username=self.keydistObject.username,host=self.keydistObject.host)):
+                if (self.keydistObject.authorise.testAuth(keyModel=self.keydistObject.keyModel,username=self.keydistObject.username,host=self.keydistObject.host,timeout=160)):
                     newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHSUCCESS,self.keydistObject)
                 else:
                     newevent = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_AUTHFAIL,self.keydistObject)
