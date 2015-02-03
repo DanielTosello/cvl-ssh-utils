@@ -310,6 +310,8 @@ class KeyDist():
                     self.keydistObject.authorise.copyID(keyModel=self.keydistObject.keyModel)
                 except Exception as e:
                     logger.debug('CopyIDThread, copyID failed with exception: '+str(e))
+                    import traceback
+                    logger.debug(traceback.format_exc())
                     raise e
                 logger.debug("KeyDist.CopyIDThread: copyID returned without error")
                 event = KeyDist.sshKeyDistEvent(KeyDist.EVT_KEYDIST_TESTAUTH,self.keydistObject)
@@ -515,7 +517,7 @@ class KeyDist():
 
     myEVT_CUSTOM_SSHKEYDIST=None
     EVT_CUSTOM_SSHKEYDIST=None
-    def __init__(self,parentWindow,progressDialog,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,username=None,host=None,authURL=None,aaf_idp=None,aaf_username=None,ec2_access_key=None,ec2_secret_key=None,authorizedKeysFile=None,copymethod='passwordAuth',*args,**kwargs):
+    def __init__(self,parentWindow,progressDialog,notifywindow,keyModel,displayStrings=None,startupinfo=None,creationflags=0,username=None,host=None,authURL=None,aaf_idp=None,aaf_username=None,ec2_access_key=None,ec2_secret_key=None,authorizedKeysFile=None,copymethod='passwordAuth',extraParams=None,*args,**kwargs):
 
         logger.debug("KeyDist.__init__")
 
@@ -584,10 +586,11 @@ class KeyDist():
         self.startupinfo = startupinfo
         self.creationflags = creationflags
         self.shuttingDown=Event()
+        self.extraParams=extraParams
 
 
         import cvlsshutils.authorise
-        self.authorise=cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=authURL,aaf_username=aaf_username,aaf_idp=aaf_idp,ec2_access_key=ec2_access_key,ec2_secret_key=ec2_secret_key,keydistObject=self)
+        self.authorise=cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=authURL,aaf_username=aaf_username,aaf_idp=aaf_idp,ec2_access_key=ec2_access_key,ec2_secret_key=ec2_secret_key,keydistObject=self,extraParams=self.extraParams)
 
 
 

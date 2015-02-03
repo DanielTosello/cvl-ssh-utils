@@ -18,10 +18,11 @@ class ASyncAuth():
             t=wx.StaticText(p,wx.ID_ANY,label='Please Australian Synchrotron Username (email address)')
             p.GetSizer().Add(t)
             tc=wx.TextCtrl(p,wx.ID_ANY,name='username_field')
+            tc.SetMinSize((300,-1))
             if user!=None:
                 tc.SetValue(user)
             p.GetSizer().Add(tc,proportion=1,flag=wx.EXPAND)
-            t=wx.StaticText(p,wx.ID_ANY,label='Please enter your Australian Synchtorton password')
+            t=wx.StaticText(p,wx.ID_ANY,label='Please enter your Australian Synchrotron password')
             p.GetSizer().Add(t)
             pc=wx.TextCtrl(p,wx.ID_ANY,name='passwd_field',style=wx.TE_PASSWORD)
             p.GetSizer().Add(pc,proportion=1,flag=wx.EXPAND)
@@ -73,7 +74,7 @@ class ASyncAuth():
         return d
         
 
-    def __init__(self,s,authURL,parent,postFirst=None,*args,**kwargs):
+    def __init__(self,s,authURL,parent,postFirst=None,extraParams=None,*args,**kwargs):
         self.parent=parent
         if kwargs.has_key('aaf_username'):
             self.username=kwargs['aaf_username']
@@ -88,8 +89,8 @@ class ASyncAuth():
         else:
             self.progressDialog=None
         self.session=s
-        self.clientusername='massive_imbl'
-        self.clientpasswd='m1mo4MedicBL'
+        self.clientusername=extraParams['oauthclient']
+        self.clientpasswd=extraParams['oauthclientpasswd']
 
     def gettoken(self):
         retry = True
