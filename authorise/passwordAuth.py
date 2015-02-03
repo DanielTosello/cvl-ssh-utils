@@ -132,7 +132,7 @@ class passwordAuth():
                 logger.debug("unable to delete remote key")
                 logger.debug(traceback.format_exc())
 
-    def testAuth(self,keyModel,username=None,host=None):
+    def testAuth(self,keyModel,username=None,host=None,timeout=10):
         if username!=None:
             self.username=username
         if host!=None:
@@ -152,7 +152,7 @@ class passwordAuth():
         auth=False
         try:
         
-            ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=10','-o','IdentityFile="{nonexistantpath}"','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
+            ssh_cmd = ['{sshbinary}','-o','ConnectTimeout=%s'%timeout,'-o','IdentityFile="{nonexistantpath}"','-o','PasswordAuthentication=no','-o','ChallengeResponseAuthentication=no','-o','KbdInteractiveAuthentication=no','-o','PubkeyAuthentication=yes','-o','StrictHostKeyChecking=no','-l','{login}','{host}','echo','"success_testauth"']
             cmd=[]
             for s in ssh_cmd:
                 cmd.append(s.format(sshbinary=self.keydistObject.keyModel.sshpaths.sshBinary,login=self.username, host=self.host, nonexistantpath=path))
