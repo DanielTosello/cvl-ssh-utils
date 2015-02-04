@@ -7,9 +7,6 @@ import tempfile
 import traceback
 import threading
 import re
-if sys.platform.startswith('win'):
-    from _winreg import *
-    import win32gui, win32con
 import signal
 
 if os.path.abspath("..") not in sys.path:
@@ -235,26 +232,6 @@ class KeyModel():
             else:
                 del os.environ['SSH_AUTH_SOCK']
             self.sshAgentProcess=None
-            if sys.platform.startswith('win'):
-                if 'PREVIOUS_SSH_AUTH_SOCK_REGISTRY' in os.environ:
-		    agentenv = os.environ['PREVIOUS_SSH_AUTH_SOCK_REGISTRY']
-	        else:
-		    agentenv = ""
-                try:
-                    path = 'Environment'
-                    reg = ConnectRegistry(None, HKEY_CURRENT_USER)
-                    key = OpenKey(reg, path, 0, KEY_ALL_ACCESS)
-		    try:
-			if agentenv!="":
-		            SetValueEx(key,'SSH_AUTH_SOCK',0,REG_SZ,agentenv)
-		        else:
-			    DeleteValueEx(key,'SSH_AUTH_SOCK')
-		    except Exception as e:
-                        logger.debug("couldn't set the SSH_AUTH_SOCK registry entry")
-		    CloseKey(key)
-		    win32gui.SendMessage(win32con.HWND_BROADCAST,win32con.WM_SETTINGCHANGE,0,'Environment')
-                except Exception as e:
-                    logger.debug("Couldn't open the windows registry to set the SSH_AUTH_SOCK")
 
 
     def startAgent(self):
@@ -315,24 +292,6 @@ happens occasionally.
                 if 'SSH_AUTH_SOCK' in os.environ:
                     os.environ['PREVIOUS_SSH_AUTH_SOCK'] = os.environ['SSH_AUTH_SOCK']
                 os.environ['SSH_AUTH_SOCK'] = agentenv
-                if sys.platform.startswith('win'):
-                    try:
-                        path = 'Environment'
-                        reg = ConnectRegistry(None, HKEY_CURRENT_USER)
-                        key = OpenKey(reg, path, 0, KEY_ALL_ACCESS)
-                        try:
-			    (value,type_id) = QueryValueEx(key,'SSH_AUTH_SOCK')
-			    os.environ['PREVIOUS_SSH_AUTH_SOCK_REGISTRY']=value
-			except WindowsError:
-			    pass
-			try:
-			    SetValueEx(key,'SSH_AUTH_SOCK',0,REG_SZ,agentenv)
-			except Exception as e:
-                            logger.debug("couldn't set the SSH_AUTH_SOCK registry entry")
-			CloseKey(key)
-			win32gui.SendMessage(win32con.HWND_BROADCAST,win32con.WM_SETTINGCHANGE,0,'Environment')
-                    except Exception as e:
-                        logger.debug("Couldn't open the windows registry to set the SSH_AUTH_SOCK")
 
 
 
