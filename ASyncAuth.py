@@ -15,7 +15,7 @@ class ASyncAuth():
             self.SetSizer(wx.BoxSizer(wx.VERTICAL))
             p=wx.Panel(self)
             p.SetSizer(wx.FlexGridSizer(cols=2,rows=2,hgap=15,vgap=15))
-            t=wx.StaticText(p,wx.ID_ANY,label='Please Australian Synchrotron Username (email address)')
+            t=wx.StaticText(p,wx.ID_ANY,label='Please enter your Australian Synchrotron Username (email address)')
             p.GetSizer().Add(t)
             tc=wx.TextCtrl(p,wx.ID_ANY,name='username_field')
             tc.SetMinSize((300,-1))
@@ -34,6 +34,7 @@ class ASyncAuth():
             b.Bind(wx.EVT_BUTTON,self.onClose)
             p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
             b=wx.Button(p,wx.ID_OK,"OK")
+            b.SetDefault()
             b.Bind(wx.EVT_BUTTON,self.onClose)
             p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
             self.GetSizer().Add(p,flag=wx.EXPAND|wx.BOTTOM,border=10)
@@ -107,11 +108,7 @@ class ASyncAuth():
             r=self.session.post(self.destURL,auth=(self.clientusername,self.clientpasswd),data={'grant_type': 'password','username':self.username,'password':self.passwd})
             if r.status_code==200:
                 data=json.loads(r.text)
-                print "got an access token"
                 retry=False
-                print r.text
-            else:
-                print r.text
 
         return data['data']['access_token']
 
