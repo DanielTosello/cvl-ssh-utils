@@ -28,6 +28,7 @@ class ASyncAuthorise(passwordAuth.passwordAuth):
                 returned=json.loads(r.text)
                 if isinstance(returned,type({})):
                     self.__dict__.update(returned)
+                    self.updateDict.update(returned)
         if r.status_code!=200:
             raise Exception("%s"%r.text)
 
