@@ -76,30 +76,34 @@ class passwordAuth():
         if err!=[]:
             raise Exception(writeableDirectoryErrorMessage)
 
-        (stdin,stdout,stderr)=sshClient.exec_command("module load massive")
         err=stderr.readlines()
         if err!=[]:
             pass
         (stdin,stdout,stderr)=sshClient.exec_command("/bin/mkdir -p ~/.ssh")
         err=stderr.readlines()
         if err!=[]:
-            raise Exception
+            pass
+            #raise Exception(err)
         (stdin,stdout,stderr)=sshClient.exec_command("/bin/chmod 700 ~/.ssh")
         err=stderr.readlines()
         if err!=[]:
-            raise Exception
+            pass
+            #raise Exception
         (stdin,stdout,stderr)=sshClient.exec_command("/bin/touch %s"%(self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
-            raise Exception
+            pass
+            #raise Exception
         (stdin,stdout,stderr)=sshClient.exec_command("/bin/chmod 600 %s"%(self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
-            raise Exception
+            pass
+            #raise Exception
         (stdin,stdout,stderr)=sshClient.exec_command("/bin/echo \"%s\" >> %s"%(self.pubkey.strip(),self.authorizedKeysFile))
         err=stderr.readlines()
         if err!=[]:
-            raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
+            pass
+            #raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
         sshClient.close()
 
 
