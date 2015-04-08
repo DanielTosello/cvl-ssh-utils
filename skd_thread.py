@@ -83,7 +83,8 @@ class KeyDist(object):
                 if not self._stopped.isSet():
                     key = self.keyModel.listKey()
             if self.testAuth():
-                self.progressDialog.Hide()
+                if self.progressDialog!=None:
+                    self.progressDialog.Hide()
                 return
             else:
                 if not self._stopped.isSet():
@@ -99,7 +100,8 @@ class KeyDist(object):
             print e
             print traceback.format_exc()
             self._exit.set()
-            self.progressDialog.Hide()
+            if self.progressDialog!=None:
+                self.progressDialog.Hide()
             return
 
     def cleanup(self):
