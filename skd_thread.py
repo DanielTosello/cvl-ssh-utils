@@ -220,7 +220,7 @@ class KeyDist(object):
     def testAuth(self):
         logger.debug('skd attempting to test authorisation')
         logger.debug('usernamed set to %s'%self.jobParams['username'])
-        return self.authoriser.testAuth(keyModel=self.keyModel,username=self.jobParams['username'],host=self.siteConfig.loginHost,timeout=160)
+        return self.authoriser.testAuth(keyModel=self.keyModel,username=self.jobParams['username'],host=self.jobParams['loginHost'],timeout=160)
 
     def copyId(self):
         logger.debug("copying the pub key")
