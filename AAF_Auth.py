@@ -144,7 +144,8 @@ class AAF_Auth():
             wx.EndBusyCursor()
         except:
             pass
-        self.progressDialog.Hide()
+        if self.progressDialog!=None:
+            self.progressDialog.Hide()
         if dlg.ShowModal()==wx.ID_OK:
             res=dlg.getIdP()
             while res==None:
@@ -161,7 +162,8 @@ class AAF_Auth():
         else:
             queue.put(None)
         dlg.Destroy()
-        self.progressDialog.Show()
+        if self.progressDialog!=None:
+            self.progressDialog.Show()
         wx.BeginBusyCursor()
 
 
