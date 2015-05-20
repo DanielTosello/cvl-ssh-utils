@@ -45,7 +45,7 @@ class passphraseDialog(wx.Dialog):
         self.border.Add(self.sizer, 0, wx.EXPAND|wx.ALL, 15)
         self.CentreOnParent(wx.BOTH)
         self.SetSizer(self.border)
-        self.Fit()
+        self.GetSizer().Fit(self)
 
         # User can click close icon in title bar:
         self.Bind(wx.EVT_CLOSE,self.onEnter)
