@@ -23,7 +23,6 @@ class ASyncAuthorise(passwordAuth.passwordAuth):
         data['apitoken']=apitoken
         r=self.session.post(self.url,data=data,verify=False)
         if r.status_code==200:
-            print r.text
             if 'json' in r.headers['content-type']:
                 returned=json.loads(r.text)
                 if isinstance(returned,type({})):

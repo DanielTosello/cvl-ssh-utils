@@ -18,8 +18,8 @@ class passphraseDialog(wx.Dialog):
         self.PassphraseField = wx.TextCtrl(self, wx.ID_ANY,style=wx.TE_PASSWORD ^ wx.TE_PROCESS_ENTER)
         self.PassphraseField.SetFocus()
         self.canceled=True
-        self.Cancel = wx.Button(self,-1,label=cancelString)
-        self.OK = wx.Button(self,-1,label=okString)
+        self.Cancel = wx.Button(self,wx.ID_CANCEL,label=cancelString)
+        self.OK = wx.Button(self,wx.ID_OK,label=okString)
         self.Help = wx.Button(self,-1,label=helpString)
 
         self.dataPanelSizer=wx.BoxSizer(wx.HORIZONTAL)
@@ -45,7 +45,7 @@ class passphraseDialog(wx.Dialog):
         self.border.Add(self.sizer, 0, wx.EXPAND|wx.ALL, 15)
         self.CentreOnParent(wx.BOTH)
         self.SetSizer(self.border)
-        self.Fit()
+        self.GetSizer().Fit(self)
 
         # User can click close icon in title bar:
         self.Bind(wx.EVT_CLOSE,self.onEnter)

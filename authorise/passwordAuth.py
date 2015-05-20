@@ -37,10 +37,7 @@ class passwordAuth():
         self.keyModel=keyModel
         self.pubkey=self.keyModel.getPubKey()
 
-        try:
-            import ssh
-        except:
-            import paramiko as ssh
+        import paramiko as ssh
         import Queue
         sshClient = ssh.SSHClient()
         sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
@@ -103,7 +100,7 @@ class passwordAuth():
         err=stderr.readlines()
         if err!=[]:
             pass
-            #raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
+            raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
         sshClient.close()
 
 
@@ -117,10 +114,7 @@ class passwordAuth():
             except:
                 key=self.pubkey
 
-            try:
-                import ssh
-            except:
-                import paramiko as ssh
+            import paramiko as ssh
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:
