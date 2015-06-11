@@ -1,5 +1,5 @@
 import wx
-class passwordAuth():
+class passwordAuth(object):
 
     def __init__(self,displayStrings,parent,progressDialog,keydistObject,authorizedKeysFile=None,*args,**kwargs):
         self.displayStrings=displayStrings

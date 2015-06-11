@@ -32,6 +32,7 @@ class KeyDist(object):
         self.keyCreated=threading.Event()
         self.cancelMessage=""
         self.password=None
+        print "in keydist.__init__ %s"%self.siteConfig.authURL
 
 
     def canceled(self):
@@ -57,6 +58,8 @@ class KeyDist(object):
             copymethod='aaf'
         else:
             copymethod='passwordAuth'
+        if self.siteConfig.provision == "NeCTAR":
+            copymethod='ec2'
         authorizedKeysFile=None
 
         if not self.jobParams.has_key('aaf_username'):
@@ -68,6 +71,7 @@ class KeyDist(object):
         if not self.jobParams.has_key('ec2_secret_key'):
             self.jobParams['ec2_secret_key'] = None
 
+        print "authURL is %s"%self.siteConfig.authURL
         self.authoriser = cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.siteConfig.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=self.siteConfig.authURL,aaf_username=self.jobParams['aaf_username'],aaf_idp=self.jobParams['aaf_idp'],ec2_access_key=self.jobParams['ec2_access_key'],ec2_secret_key=self.jobParams['ec2_secret_key'],keydistObject=self,extraParams=self.extraParams)
 
         self.scanHostKeys()
@@ -89,10 +93,19 @@ class KeyDist(object):
             else:
                 if not self._stopped.isSet():
                     self.copyId()
-                if (not self._stopped.isSet()) and self.testAuth():
+                authn=False
+                niter=0
+                while not authn and niter<5:
+                    authn=self.testAuth()
+                    niter=niter+1
+                    if niter>0:
+                        import time
+                        time.sleep(1)
+                if (not self._stopped.isSet()) and authn:
                     self.progressDialog.Hide()
                     return 
                 else:
+                    self.cancelMessage="canceling because testAuth failed %s times after copyID Completed"%niter
                     self._exit.set()
                     self.progressDialog.Hide()
                     return
@@ -126,7 +139,7 @@ class KeyDist(object):
         else:
             ppd = passphraseDialog(self.parentWindow,self.progressDialog,wx.ID_ANY,'Unlock Key',self.displayStrings.passphrasePrompt,"OK","Cancel")
         (canceled,passphrase) = ppd.getPassword()
-        queue.put(canceled,passphrase)
+        queue.put((canceled,passphrase))
 
 
     def getPassphrase(self,queue):
@@ -142,9 +155,9 @@ class KeyDist(object):
         if (not canceled):
             logger.debug("User didn't cancel from CreateNewKeyDialog.")
             passphrase=createNewKeyDialog.getPassphrase()
-            queue.put(canceled,passphrase)
+            queue.put((canceled,passphrase))
         else:
-            queue.put(canceled,None)
+            queue.put((canceled,None))
 
     def createKey(self):
         logger.debug('in createKey method')
@@ -164,6 +177,7 @@ class KeyDist(object):
                 (canceled,self.password)=queue.get()
                 if canceled:
                     self._stopped.set()
+                    self.cancelMessage="canceled while requesting a new ssh key passphrase"
                     self._exit.set()
             if not self._stopped.isSet():
                 def success(): 
@@ -197,11 +211,13 @@ class KeyDist(object):
             (canceled,self.password)=queue.get()
             if canceled:
                 self._stopped.set()
+                self.cancelMessage="cancled while requesting the existing ssh key passphrase"
                 self._exit.set()
             self._addKeyComplete.set()
         def loadedCallback():
             self._loadKeySuccess.set()
         def failedToConnectToAgentCallback():
+            self.cancelMessage="failed to connect to agent callback"
             self._exit.set()
             self._stopped.set()
         logger.debug("sshKeyDist.loadKeyThread.run: KeyModel information temporary: %s path: %s exists: %s"%(km.isTemporaryKey(),km.getPrivateKeyFilePath(),km.privateKeyExists()))
@@ -237,8 +253,9 @@ class KeyDist(object):
             self.updateDict.update(ud)
             logger.debug('updating jobParams with %s'%ud)
             self.jobParams.update(ud)
-        except:
-            pass
+        except Exception as e:
+            import traceback
+            logger.debug(traceback.format_exc())
         try:
             newusername=self.obj.getLocalUsername()
             logger.debug('updating updateDict with new username %s'%newusername)
