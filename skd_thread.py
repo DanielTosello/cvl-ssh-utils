@@ -8,7 +8,7 @@ from CreateNewKeyDialog import CreateNewKeyDialog
 import traceback
 import Queue
 class KeyDist(object):
-    def __init__(self,keyModel,parentWindow,progressDialog,jobParams,siteConfig,startupinfo=None,creationflags=0,extraParams=None,*args,**kwargs):
+    def __init__(self,keyModel,parentWindow,progressDialog,jobParams,siteConfig,startupinfo=None,creationflags=0,extraParams={},*args,**kwargs):
         super(KeyDist,self).__init__(*args,**kwargs)
         self.keyModel=keyModel
         self._stopped = threading.Event()
@@ -43,16 +43,18 @@ class KeyDist(object):
         self._exit.set()
 
     def scanHostKeys(self):
-        print "implement scanHostKeys"
+        logger.debug("implement scanHostKeys")
 
     def authorise(self):
 
         if self.siteConfig.authURL!=None and 'ASync' in self.siteConfig.authURL:
             copymethod='ASyncAuth'
             try:
-                extraParams['oauthclient']=self.loginprocess.siteConfig.oauthclient
-                extraParams['oauthclientpasswd']=self.loginprocess.siteConfig.oauthclientpasswd
-            except:
+                self.extraParams['oauthclient']=self.siteConfig.oauthclient
+                self.extraParams['oauthclientpasswd']=self.siteConfig.oauthclientpasswd
+            except Exception as e:
+                logger.debug('exception %s'%e)
+                logger.debug(traceback.format_exc())
                 pass
         elif self.siteConfig.authURL!=None:
             copymethod='aaf'
@@ -71,7 +73,7 @@ class KeyDist(object):
         if not self.jobParams.has_key('ec2_secret_key'):
             self.jobParams['ec2_secret_key'] = None
 
-        print "authURL is %s"%self.siteConfig.authURL
+        logger.debug('calling authorize factory with extraParams %s'%self.extraParams) 
         self.authoriser = cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.siteConfig.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=self.siteConfig.authURL,aaf_username=self.jobParams['aaf_username'],aaf_idp=self.jobParams['aaf_idp'],ec2_access_key=self.jobParams['ec2_access_key'],ec2_secret_key=self.jobParams['ec2_secret_key'],keydistObject=self,extraParams=self.extraParams)
 
         self.scanHostKeys()
@@ -238,6 +240,19 @@ class KeyDist(object):
         logger.debug('usernamed set to %s'%self.jobParams['username'])
         return self.authoriser.testAuth(keyModel=self.keyModel,username=self.jobParams['username'],host=self.jobParams['loginHost'],timeout=160)
 
+    def ShowErrorDialog(self,msg,queue):
+        import sys
+        if sys.platform.startswith("darwin"):
+            from MacMessageDialog import LauncherMessageDialog
+        elif sys.platform.startswith("win"):
+            from WindowsMessageDialog import LauncherMessageDialog
+        elif sys.platform.startswith("linux"):
+            from LinuxMessageDialog import LauncherMessageDialog
+        dlg=LauncherMessageDialog(self.parentWindow,msg,self.parentWindow.programName,helpEmailAddress=self.siteConfig.displayStrings.helpEmailAddress)
+        dlg.ShowModal()
+        logger.dump_log(self.parentWindow,submit_log=True)
+        queue.put(None)
+
     def copyId(self):
         logger.debug("copying the pub key")
         try:
@@ -246,7 +261,10 @@ class KeyDist(object):
             logger.debug("copyID raised an exception %s"%e)
             import traceback
             logger.debug(traceback.format_exc())
-            raise e
+            queue=Queue.Queue()
+            msg="There was an error authorizing your access\nThe error reported was %s"%e
+            wx.CallAfter(self.ShowErrorDialog,"%s"%e,queue=queue)
+            queue.get()
         try:
             ud=self.authoriser.getUpdateDict()
             logger.debug('updating updateDict with %s'%ud)

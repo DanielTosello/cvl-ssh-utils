@@ -27,6 +27,8 @@ class passwordAuth(object):
         dlg.Destroy()
 
     def copyID(self,keyModel,username=None,host=None):
+        from logger.Logger import logger
+        logger.debug("in password auth, copyID")
         if username!=None:
             self.username=username
         if host!=None:
@@ -39,6 +41,7 @@ class passwordAuth(object):
 
         import paramiko as ssh
         import Queue
+        logger.debug("in password auth, copyID, creating ssh client")
         sshClient = ssh.SSHClient()
         sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
         passwd=""
@@ -49,6 +52,7 @@ class passwordAuth(object):
                 sshClient.connect(hostname=self.host,timeout=10,username=self.username,password=passwd,allow_agent=False,look_for_keys=False)
                 notConnected=False
             except ssh.AuthenticationException:
+                logger.debug("in password auth, copyID, Authentication Exception")
                 wx.CallAfter(self.getPass,queue)
                 passwd=queue.get()
                 if passwd==None:
@@ -57,6 +61,7 @@ class passwordAuth(object):
                 import traceback
                 raise e
 
+        logger.debug("in password auth, copyID, connected")
 
         # SSH keys won't work if the user's home directory is writeable by other users.
         writeableDirectoryErrorMessage = "" + \

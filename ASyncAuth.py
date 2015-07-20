@@ -90,8 +90,11 @@ class ASyncAuth():
         else:
             self.progressDialog=None
         self.session=s
-        self.clientusername=extraParams['oauthclient']
-        self.clientpasswd=extraParams['oauthclientpasswd']
+        if extraParams!=None:
+            self.clientusername=extraParams['oauthclient']
+            self.clientpasswd=extraParams['oauthclientpasswd']
+        else:
+            raise Exception("There was an unknown error communicating with the Australian Synchtrotron Identity System. Please submit a debug report so we can work out what went wrong")
 
     def gettoken(self):
         retry = True
@@ -109,6 +112,8 @@ class ASyncAuth():
             if r.status_code==200:
                 data=json.loads(r.text)
                 retry=False
+            else:
+                logger.debug('AS portal reported %s %s'%(r.status_code,r.text))
 
         return data['data']['access_token']
 
