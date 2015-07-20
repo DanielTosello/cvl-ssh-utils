@@ -778,8 +778,8 @@ happens occasionally.
         
 
 def pidIsRunning(pid):
+    import psutil
     try:
-        import psutil
         p = psutil.Process(int(pid))
         if p.status == psutil.STATUS_DEAD:
             return False

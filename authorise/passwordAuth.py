@@ -1,5 +1,5 @@
 import wx
-class passwordAuth():
+class passwordAuth(object):
 
     def __init__(self,displayStrings,parent,progressDialog,keydistObject,authorizedKeysFile=None,*args,**kwargs):
         self.displayStrings=displayStrings
@@ -27,6 +27,8 @@ class passwordAuth():
         dlg.Destroy()
 
     def copyID(self,keyModel,username=None,host=None):
+        from logger.Logger import logger
+        logger.debug("in password auth, copyID")
         if username!=None:
             self.username=username
         if host!=None:
@@ -37,11 +39,9 @@ class passwordAuth():
         self.keyModel=keyModel
         self.pubkey=self.keyModel.getPubKey()
 
-        try:
-            import ssh
-        except:
-            import paramiko as ssh
+        import paramiko as ssh
         import Queue
+        logger.debug("in password auth, copyID, creating ssh client")
         sshClient = ssh.SSHClient()
         sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
         passwd=""
@@ -52,6 +52,7 @@ class passwordAuth():
                 sshClient.connect(hostname=self.host,timeout=10,username=self.username,password=passwd,allow_agent=False,look_for_keys=False)
                 notConnected=False
             except ssh.AuthenticationException:
+                logger.debug("in password auth, copyID, Authentication Exception")
                 wx.CallAfter(self.getPass,queue)
                 passwd=queue.get()
                 if passwd==None:
@@ -60,6 +61,7 @@ class passwordAuth():
                 import traceback
                 raise e
 
+        logger.debug("in password auth, copyID, connected")
 
         # SSH keys won't work if the user's home directory is writeable by other users.
         writeableDirectoryErrorMessage = "" + \
@@ -103,7 +105,7 @@ class passwordAuth():
         err=stderr.readlines()
         if err!=[]:
             pass
-            #raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
+            raise Exception('The program was unable to write a file in your home directory. This might be because you have exceeded your disk quota. You should log in manually and clean up some files if this is the case')
         sshClient.close()
 
 
@@ -117,10 +119,7 @@ class passwordAuth():
             except:
                 key=self.pubkey
 
-            try:
-                import ssh
-            except:
-                import paramiko as ssh
+            import paramiko as ssh
             sshClient = ssh.SSHClient()
             sshClient.set_missing_host_key_policy(ssh.AutoAddPolicy())
             try:

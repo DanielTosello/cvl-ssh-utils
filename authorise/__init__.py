@@ -3,6 +3,7 @@ import aaf
 import sftpAuth
 import boto
 import ASyncAuthorise
+import ec2
 class authorise(object):
     def factory(copymethod,*args,**kwargs):
         if copymethod=='passwordAuth':

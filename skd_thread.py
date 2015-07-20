@@ -32,6 +32,7 @@ class KeyDist(object):
         self.keyCreated=threading.Event()
         self.cancelMessage=""
         self.password=None
+        print "in keydist.__init__ %s"%self.siteConfig.authURL
 
 
     def canceled(self):
@@ -59,6 +60,8 @@ class KeyDist(object):
             copymethod='aaf'
         else:
             copymethod='passwordAuth'
+        if self.siteConfig.provision == "NeCTAR":
+            copymethod='ec2'
         authorizedKeysFile=None
 
         if not self.jobParams.has_key('aaf_username'):
@@ -86,15 +89,25 @@ class KeyDist(object):
                 if not self._stopped.isSet():
                     key = self.keyModel.listKey()
             if self.testAuth():
-                self.progressDialog.Hide()
+                if self.progressDialog!=None:
+                    self.progressDialog.Hide()
                 return
             else:
                 if not self._stopped.isSet():
                     self.copyId()
-                if (not self._stopped.isSet()) and self.testAuth():
+                authn=False
+                niter=0
+                while not authn and niter<5:
+                    authn=self.testAuth()
+                    niter=niter+1
+                    if niter>0:
+                        import time
+                        time.sleep(1)
+                if (not self._stopped.isSet()) and authn:
                     self.progressDialog.Hide()
                     return 
                 else:
+                    self.cancelMessage="canceling because testAuth failed %s times after copyID Completed"%niter
                     self._exit.set()
                     self.progressDialog.Hide()
                     return
@@ -102,7 +115,8 @@ class KeyDist(object):
             print e
             print traceback.format_exc()
             self._exit.set()
-            self.progressDialog.Hide()
+            if self.progressDialog!=None:
+                self.progressDialog.Hide()
             return
 
     def cleanup(self):
@@ -127,7 +141,7 @@ class KeyDist(object):
         else:
             ppd = passphraseDialog(self.parentWindow,self.progressDialog,wx.ID_ANY,'Unlock Key',self.displayStrings.passphrasePrompt,"OK","Cancel")
         (canceled,passphrase) = ppd.getPassword()
-        queue.put(canceled,passphrase)
+        queue.put((canceled,passphrase))
 
 
     def getPassphrase(self,queue):
@@ -143,9 +157,9 @@ class KeyDist(object):
         if (not canceled):
             logger.debug("User didn't cancel from CreateNewKeyDialog.")
             passphrase=createNewKeyDialog.getPassphrase()
-            queue.put(canceled,passphrase)
+            queue.put((canceled,passphrase))
         else:
-            queue.put(canceled,None)
+            queue.put((canceled,None))
 
     def createKey(self):
         logger.debug('in createKey method')
@@ -165,6 +179,7 @@ class KeyDist(object):
                 (canceled,self.password)=queue.get()
                 if canceled:
                     self._stopped.set()
+                    self.cancelMessage="canceled while requesting a new ssh key passphrase"
                     self._exit.set()
             if not self._stopped.isSet():
                 def success(): 
@@ -198,11 +213,13 @@ class KeyDist(object):
             (canceled,self.password)=queue.get()
             if canceled:
                 self._stopped.set()
+                self.cancelMessage="cancled while requesting the existing ssh key passphrase"
                 self._exit.set()
             self._addKeyComplete.set()
         def loadedCallback():
             self._loadKeySuccess.set()
         def failedToConnectToAgentCallback():
+            self.cancelMessage="failed to connect to agent callback"
             self._exit.set()
             self._stopped.set()
         logger.debug("sshKeyDist.loadKeyThread.run: KeyModel information temporary: %s path: %s exists: %s"%(km.isTemporaryKey(),km.getPrivateKeyFilePath(),km.privateKeyExists()))
@@ -221,7 +238,7 @@ class KeyDist(object):
     def testAuth(self):
         logger.debug('skd attempting to test authorisation')
         logger.debug('usernamed set to %s'%self.jobParams['username'])
-        return self.authoriser.testAuth(keyModel=self.keyModel,username=self.jobParams['username'],host=self.siteConfig.loginHost,timeout=160)
+        return self.authoriser.testAuth(keyModel=self.keyModel,username=self.jobParams['username'],host=self.jobParams['loginHost'],timeout=160)
 
     def ShowErrorDialog(self,msg,queue):
         import sys
@@ -254,8 +271,9 @@ class KeyDist(object):
             self.updateDict.update(ud)
             logger.debug('updating jobParams with %s'%ud)
             self.jobParams.update(ud)
-        except:
-            pass
+        except Exception as e:
+            import traceback
+            logger.debug(traceback.format_exc())
         try:
             newusername=self.obj.getLocalUsername()
             logger.debug('updating updateDict with new username %s'%newusername)

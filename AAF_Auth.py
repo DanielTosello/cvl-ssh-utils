@@ -116,7 +116,7 @@ class AAF_Auth():
             b.Bind(wx.EVT_BUTTON,self.onClose)
             p.GetSizer().Add(b,flag=wx.ALIGN_RIGHT|wx.ALL,border=15)
             self.GetSizer().Add(p,flag=wx.EXPAND|wx.BOTTOM,border=10)
-            self.Fit()
+            self.GetSizer().Fit(self)
 
         def onClose(self,event):
             rv=event.GetEventObject().GetId()
@@ -144,7 +144,8 @@ class AAF_Auth():
             wx.EndBusyCursor()
         except:
             pass
-        self.progressDialog.Hide()
+        if self.progressDialog!=None:
+            self.progressDialog.Hide()
         if dlg.ShowModal()==wx.ID_OK:
             res=dlg.getIdP()
             while res==None:
@@ -161,7 +162,8 @@ class AAF_Auth():
         else:
             queue.put(None)
         dlg.Destroy()
-        self.progressDialog.Show()
+        if self.progressDialog!=None:
+            self.progressDialog.Show()
         wx.BeginBusyCursor()
 
 
