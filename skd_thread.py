@@ -74,7 +74,7 @@ class KeyDist(object):
             self.jobParams['ec2_secret_key'] = None
 
         logger.debug('calling authorize factory with extraParams %s'%self.extraParams) 
-        self.authoriser = cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.siteConfig.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=self.siteConfig.authURL,aaf_username=self.jobParams['aaf_username'],aaf_idp=self.jobParams['aaf_idp'],ec2_access_key=self.jobParams['ec2_access_key'],ec2_secret_key=self.jobParams['ec2_secret_key'],keydistObject=self,extraParams=self.extraParams)
+        self.authoriser = cvlsshutils.authorise.authorise.factory(copymethod=copymethod,parent=self.parentWindow,displayStrings=self.siteConfig.displayStrings,progressDialog=self.progressDialog,authorizedKeysFile=authorizedKeysFile,url=self.siteConfig.authURL,aaf_username=self.jobParams['aaf_username'],aaf_idp=self.jobParams['aaf_idp'],ec2_access_key=self.jobParams['ec2_access_key'],ec2_secret_key=self.jobParams['ec2_secret_key'],keydistObject=self,extraParams=self.extraParams,onFirstLogin=self.siteConfig.onFirstLogin)
 
         self.scanHostKeys()
         self.sshAgentProcess = None

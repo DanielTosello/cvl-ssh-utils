@@ -1,7 +1,7 @@
 import wx
 class passwordAuth(object):
 
-    def __init__(self,displayStrings,parent,progressDialog,keydistObject,authorizedKeysFile=None,*args,**kwargs):
+    def __init__(self,displayStrings,parent,progressDialog,keydistObject,authorizedKeysFile=None,onFirstLogin=None,*args,**kwargs):
         self.displayStrings=displayStrings
         self.pubkey=None
         self.username=None
@@ -10,6 +10,7 @@ class passwordAuth(object):
         self.progressDialog=progressDialog
         self.authorizedKeysFile=authorizedKeysFile
         self.keydistObject=keydistObject
+        self.onFirstLogin=onFirstLogin
         if self.authorizedKeysFile==None:
             self.authorizedKeysFile="~/.ssh/authorized_keys"
 
@@ -62,6 +63,13 @@ class passwordAuth(object):
                 raise e
 
         logger.debug("in password auth, copyID, connected")
+
+        if self.onFirstLogin!=None:
+            (stdin,stdout,stderr)=sshClient.exec_command(self.onFirstLogin)
+            err=stdout.readlines()
+            if err!=[]:
+                raise Exception(self.displayStrings.onFirstLoginFailure)
+
 
         # SSH keys won't work if the user's home directory is writeable by other users.
         writeableDirectoryErrorMessage = "" + \
