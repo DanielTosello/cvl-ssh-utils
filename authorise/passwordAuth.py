@@ -66,8 +66,9 @@ class passwordAuth(object):
 
         if self.onFirstLogin!=None:
             (stdin,stdout,stderr)=sshClient.exec_command(self.onFirstLogin)
-            err=stdout.readlines()
+            err=stderr.readlines()
             if err!=[]:
+                logger.debug("copy id saw the error message %s"%err)
                 raise Exception(self.displayStrings.onFirstLoginFailure)
 
 
