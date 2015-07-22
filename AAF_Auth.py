@@ -1,6 +1,7 @@
 import wx
 from HTMLParser import HTMLParser
 from logger.Logger import logger
+import threading
 class AAF_Auth():
 
     class reset_exception(Exception):
@@ -136,7 +137,7 @@ class AAF_Auth():
         def getPasswd(self):
             return self.FindWindowByName('passwd_field').GetValue()
 
-    def queryIdPUserPass(self,options,queue,idp=None,username=None):
+    def wxQueryIdPUserPass(self,options,queue,idp=None,username=None):
         o=[list(t) for t in zip(*options)]
 
         dlg=AAF_Auth.IdPUserPassDialog(parent=self.parent,id=wx.ID_ANY,options=o[1],idp=idp,user=username)
@@ -166,7 +167,11 @@ class AAF_Auth():
             self.progressDialog.Show()
         wx.BeginBusyCursor()
 
-
+    def queryIdPUserPass(self,options,queue,idp=None,username=None):
+        if self.testcreds!=None:
+            queue.put(self.testcreds)
+        else:
+            wx.CallAfter(self.wxQueryIdPUserPass,options,queue,idp,username)
 
     def getIdPChoices(self,session):
         url='https://ds.aaf.edu.au/discovery/DS'
@@ -194,7 +199,7 @@ class AAF_Auth():
             nexturl = p.attrs['action']
         except:
             nexturl = url
-        logger.debug('idp form inputs %s'%p.inputs)
+        #logger.debug('idp form inputs %s'%p.inputs)
         for k in p.inputs.keys():
             if 'RESET' in k.upper():
                 logger.debug('deleting the input %s from the attribute release form'%k)
@@ -212,7 +217,7 @@ class AAF_Auth():
         return d
         
 
-    def __init__(self,s,authURL,parent,postFirst=None,*args,**kwargs):
+    def __init__(self,s,authURL,parent,postFirst=None,testcreds=None,*args,**kwargs):
         self.parent=parent
         if kwargs.has_key('aaf_idp'):
             self.idp=kwargs['aaf_idp']
@@ -225,6 +230,8 @@ class AAF_Auth():
         self.passwd=None
         self.destURL=authURL
         self.postFirst=postFirst
+        self.testcreds=testcreds
+        self.verify=False
 
         if kwargs.has_key('progressDialog'):
             self.progressDialog=kwargs['progressDialog']
@@ -232,119 +239,88 @@ class AAF_Auth():
             self.progressDialog=None
         self.session=s
 
+    def guessPageType(self,url,text):
+        if url.startswith('https://ds'):
+            return "ds"
+        if url.startswith(self.destURL):
+            return "desturl"
+        p=AAF_Auth.genericForm()
+        p.feed(text)
+        for i in p.inputs.keys():
+            if ('user' in i or 'User' in i):
+                return "authn"
+        if len(p.inputs.keys()) >0:
+            return "generic"
+        logger.debug('guessPageType didn\'t work %s %s '%(url,self.destURL))
+        print('guessPageType didn\'t work %s %s '%(url,self.destURL))
+        raise Exception("unknown page type in AAF login process")
+
+    def getNextUrl(self,r,p):
+        nexturl = p.attrs['action']
+        if nexturl == "":
+            nexturl = r.url
+        if  not 'http' in nexturl[0:4]:
+            nexturl=r.url.split('/')[0]+'//'+r.url.split('/')[2]+nexturl
+        return nexturl
+
     def auth_cycle(self):
         self.idpoptions=self.getIdPChoices(self.session)
-        retry=True
-        while retry:
-            try:
-                if self.postFirst!=None:
-                    r=self.session.get(self.postFirst,verify=False)
-                    logger.debug('AAFCycle, post first is set, lets find a login button')
-                    looping=True
-                    while looping:
-                        p=AAF_Auth.genericForm()
-                        p.feed(r.text)
-                        if p.attrs.has_key('action'):
-                            logger.debug('AAFCycle, post first set, keep posting forms untill we either login or end up on the discoverey service')
-                            nexturl = p.attrs['action']
-                            r=self.session.post(nexturl,data=p.inputs,verify=False) # We need to click login before we go to the DS
-                        if r.url.startswith('https://ds') or self.destURL in r.url:
-                            looping=False
-                else:
-                    r=self.session.get(self.destURL,verify=False)
-                if self.destURL in r.url: # We already have a valid session with the web service
-                    logger.debug('AAF cycle unnecessary, we\'re already auth\'d to this service')
-                    self.response=r
-                    return
-                else: 
-                    logger.debug('We don\'t appear to be logged in yet, lets begin AAF Shiboleth login. Current URL is %s'%r.url)
-
+        r=self.session.get(self.destURL,verify=self.verify)
+        complete=False
+        loopcounter=0
+        authncount=0
+        while not complete and (loopcounter-authncount) < 10:
+            loopcounter=loopcounter+1
+            pagetype = self.guessPageType(r.url,r.text)
+            print "%s %s %s"%(r.url,self.destURL,pagetype)
+            # If we have a generic form, we just attempt to post. This is probably either a form that says "login with AAF" or "do you consent to attribute release"
+            if pagetype == 'generic':     
+                p=AAF_Auth.genericForm()
+                p.feed(r.text)
+                nexturl = self.getNextUrl(r,p)
+                r=self.session.post(nexturl,data=p.inputs,verify=self.verify)
+            # If we see the discovery service, we ask the user for their IdP username and password
+            if pagetype == 'ds':
                 import Queue
                 queue=Queue.Queue()
                 if self.idp==None or 'Select' in self.idp or self.idp == "" or self.username==None or self.username == "" or self.passwd==None or self.passwd=="":
-                    wx.CallAfter(self.queryIdPUserPass,self.idpoptions,queue,self.idp,self.username)
+                    t=threading.Thread(target=self.queryIdPUserPass,args=[self.idpoptions,queue,self.idp,self.username])
+                    t.start()
                     res=queue.get()
+                    t.join()
                     if res==None:
                         raise Exception("Login cancelled")
                     else:
                         (myidp,self.idp,self.username,self.passwd)=res
                         logger.debug('queryIdPUserPass set values for idp: %s user: %s.'%(self.idp,self.username))
-                
-                if r.url.startswith('https://ds'): # we've been redirected to the AAF discovery service
-                    logger.debug('AAF cycle sent us to the discovery service. Prompting for the correct IdP')
-                    p = AAF_Auth.DSForm()
-                    p.feed(r.text)
-                    logger.debug('querying for IdP, username and password, initial values: %s %s'%(self.idp,self.username))
-                    d={}
-                    d['user_idp'] = myidp.encode('ascii')
-                    d['Select']='Select'
-                    logger.debug('in auth_cycle, url is %s'%r.url)
-                    nexturl = p.attrs['action']
-                    if  not 'http' in nexturl[0:4]:
-                        nexturl=r.url.split('/')[0]+'//'+r.url.split('/')[2]+nexturl
-                    r=self.session.post(nexturl,data=d,verify=False)
-
-                else:
-                    logger.debug('AAF cycle bypassed the discovery service. Perhaps the web service sent us directly to an IdP? This is unusual, but within spec. URL is %s'%r.url)
-
-                if self.destURL in r.url: # If we have a session with the IdP and the IdP didn't ask to release attributes, we might already be at the destionation URL
-                    self.response=r
-                    return
-                
-                p=AAF_Auth.genericForm() # If we're not at the destURL we should be at either the IdP authentication page, or the IdP attribute release page
-                # Not tested. I think if we already have session with the idp, the IdP may return an attribute release form rather than a login form. the method self.idp should still work.
-                loop=0
-                while (not p.inputs.has_key('SAMLResponse')):
-                    if self.destURL in r.url: # I'm puzzled by this, I though the SAMLResponse would always come as a hidden field in a form from the IdP along with a redirect, but apparently not
-                        self.response=r
-                        return
-                    logger.debug('processing text as if it was an IdP login form idp %s'%r.url)
-                    r=self.processIdP(self.session,r.text,r.url,self.idp,self.username,self.passwd)
-                    logger.debug('processing text to look for a SAML response')
-                    p=AAF_Auth.genericForm()
-                    p.feed(r.text)
-                    reprompt=False
-                    for i in p.inputs.keys():
-                        if ('user' in i or 'User' in i):
-                            reprompt=True
-                    if reprompt:
-                        wx.CallAfter(self.queryIdPUserPass,self.idpoptions,queue,self.idp,self.username)
-                        res=queue.get()
-                        if res==None:
-                            raise Exception("Login cancled")
-                        else:
-                            oldidp=self.idp
-                            (myidp,self.idp,self.username,self.passwd)=res
-                            if oldidp!=self.idp:
-                                raise AAF_Auth.reset_exception
-
-                if self.destURL in r.url: # We have succeeded
-                    logger.debug('AAF cycle succeeded')
-                    retry=False
-                    self.response=r
-                    return
-                nexturl = p.attrs['action']
-                logger.debug("AAF Cycle, trying one extra post, current url is %s"%r.url)
-                r=self.session.post(nexturl,data=p.inputs,verify=False) # We need one more post? This seems to be the behaviour on NeCTAR
-                if self.destURL in r.url: # We have succeeded
-                    logger.debug('AAF Cycle succeeded with the extra post')
-                    retry=False
-                    self.response=r
-                    return
-
-                p=AAF_Auth.genericForm()
+                p = AAF_Auth.DSForm()
                 p.feed(r.text)
-                nexturl = p.attrs['action']
-                logger.debug("AAF Cycle, trying a second extra post, current url is %s"%r.url)
-                r=self.session.post(nexturl,data=p.inputs,verify=False) # We need one more post? This seems to be the behaviour on NeCTAR
-                if self.destURL in r.url: # We have succeeded
-                    logger.debug('AAF Cycle succeeded with the extra post')
-                    retry=False
-                    self.response=r
-                    return
+                logger.debug('querying for IdP, username and password, initial values: %s %s'%(self.idp,self.username))
+                d={}
+                d['user_idp'] = myidp.encode('ascii')
+                d['Select']='Select'
+                logger.debug('in auth_cycle, url is %s'%r.url)
+                nexturl = self.getNextUrl(r,p)
+                r=self.session.post(nexturl,data=d,verify=True)
+            # If we see the authentication page we give it the username and password. If we see if more than once we prompt for the IdP username and password. If the IdP changes we raise an exception to reset the whole process
+            if pagetype == 'authn':
+                if authncount > 0:
+                    t=threading.Thread(target=self.queryIdPUserPass,args=[self.idpoptions,queue,self.idp,self.username])
+                    t.start()
+                    res=queue.get()
+                    t.join()
+                    if res==None:
+                        raise Exception("Login cancled")
+                    else:
+                        oldidp=self.idp
+                        (myidp,self.idp,self.username,self.passwd)=res
+                        if oldidp!=self.idp:
+                            authncount=0
+                            r=self.session.get(self.destURL,verify=self.verify)
+                authncount=authncount+1
+                r=self.processIdP(self.session,r.text,r.url,self.idp,self.username,self.passwd)
+            if pagetype == 'desturl':
+                complete=True
+        if not complete:
+            raise Exception("AAF Authentication failed. It appeared to get in an loop")
 
-                else:
-                    logger.debug('AAF Cycle appears to have failed. current URL is %s, expected URL is %s'%(r.url,self.destURL))
-                    raise Exception("We went through the whole AAF cycle, but didn't end up where the though we would. This is a bug. Please help us fix this up by sending an email/crash report")
-            except AAF_Auth.reset_exception as e:
-                pass
