@@ -97,7 +97,7 @@ class KeyDist(object):
                     self.copyId()
                 authn=False
                 niter=0
-                while not authn and niter<5:
+                while not authn and niter<5 and not self._stopped.isSet():
                     authn=self.testAuth()
                     niter=niter+1
                     if niter>0:
@@ -258,6 +258,7 @@ class KeyDist(object):
         try:
             self.authoriser.copyID(self.keyModel)
         except Exception as e:
+            self._stopped.set()
             logger.debug("copyID raised an exception %s"%e)
             import traceback
             logger.debug(traceback.format_exc())

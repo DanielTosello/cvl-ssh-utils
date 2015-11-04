@@ -108,7 +108,7 @@ class ASyncAuth():
             else:
                 (self.username,self.passwd)=res
                 logger.debug('queryIdPUserPass set values for user: %s.'%(self.username))
-            r=self.session.post(self.destURL,auth=(self.clientusername,self.clientpasswd),data={'grant_type': 'password','username':self.username,'password':self.passwd})
+            r=self.session.post(self.destURL,auth=(self.clientusername,self.clientpasswd),data={'grant_type': 'password','username':self.username,'password':self.passwd},verify=False)
             if r.status_code==200:
                 data=json.loads(r.text)
                 retry=False
