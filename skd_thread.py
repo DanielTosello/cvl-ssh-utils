@@ -39,6 +39,7 @@ class KeyDist(object):
         return self._exit.isSet()
 
     def shutdownReal(self):
+        logger.debug("skd_thread.shutdownReal called")
         self._stopped.set()
         self._exit.set()
 
@@ -122,6 +123,7 @@ class KeyDist(object):
     def cleanup(self):
         self._exit.wait()
         if self._exit.isSet():
+            logger.debug("Cleanup thread: _exit variable became set, proceeding to cleanup")
             self._stopped.set()
             if self.removeKeyOnExit.isSet() and self.keyCreated.isSet():
                 try:
