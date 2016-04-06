@@ -353,7 +353,7 @@ happens occasionally.
             self.keyComment = keyComment
         if sys.platform.startswith('win'):
             cmdList = [self.sshPathsObject.sshKeyGenBinary, "-f", self.sshpaths.double_quote(self.getPrivateKeyFilePath()), "-C", self.sshpaths.double_quote(self.keyComment), "-N", passphrase]
-            logger.debug("KeyModel.generateNewKey: " + " ".join(cmdList))
+            logger.debug("KeyModel.generateNewKey: Command not echoed to debug log")
 	    cmd = " ".join(cmdList)
             proc = subprocess.Popen(cmd,
                                     stdin=subprocess.PIPE,
@@ -426,7 +426,7 @@ happens occasionally.
         if sys.platform.startswith('win'):
             cmdList = [self.sshPathsObject.sshKeyGenBinary.strip('"'), "-f", self.getPrivateKeyFilePath(), 
                         "-p", "-P", existingPassphrase, "-N", newPassphrase]
-            logger.debug("KeyModel.changePassphrase: " + " ".join(cmdList))
+            logger.debug("KeyModel.changePassphrase: command not echoed to debug log")
             proc = subprocess.Popen(cmdList,
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
