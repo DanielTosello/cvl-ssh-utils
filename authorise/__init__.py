@@ -4,6 +4,7 @@ import sftpAuth
 import boto
 import ASyncAuthorise
 import ec2
+import keyAuth
 class authorise(object):
     def factory(copymethod,*args,**kwargs):
         if copymethod=='passwordAuth':
@@ -16,5 +17,7 @@ class authorise(object):
             return sftpAuth.passwordAuth(*args,**kwargs)
         if copymethod=='ASyncAuth':
             return ASyncAuthorise.ASyncAuthorise(*args,**kwargs)
+        if copymethod=='keyAuth':
+            return keyAuth.keyAuth(*args,**kwargs)        
     factory=staticmethod(factory)
 

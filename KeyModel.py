@@ -137,9 +137,13 @@ class KeyModel():
        
     def getPubKey(self):
         pubKeyPath=self.getPrivateKeyFilePath()+".pub"
-        with open(pubKeyPath,'r') as f:
-            pubkey=f.read()
-            return pubkey
+        try:
+            with open(pubKeyPath,'r') as f:
+                pubkey=f.read()
+                return pubkey
+        except:
+            logger.debug("KeyModel.getPubKey: %s not found"%pubKeyPath)
+            return ""
         return None
 
     def getFingerprint(self):

@@ -48,6 +48,7 @@ class KeyDist(object):
 
     def authorise(self):
 
+        logger.debug("authURL = %s"%self.siteConfig.authURL)
         if self.siteConfig.authURL!=None and 'ASync' in self.siteConfig.authURL:
             copymethod='ASyncAuth'
             try:
@@ -57,6 +58,8 @@ class KeyDist(object):
                 logger.debug('exception %s'%e)
                 logger.debug(traceback.format_exc())
                 pass
+        elif self.siteConfig.authURL=='keyAuth':
+            copymethod='keyAuth'
         elif self.siteConfig.authURL!=None:
             copymethod='aaf'
         else:
@@ -84,6 +87,11 @@ class KeyDist(object):
                 self.needAgent()
             if not self._stopped.isSet():
                 key = self.keyModel.listKey()
+                if copymethod == 'keyAuth':
+                    if self.keyModel.temporaryKey:
+                        key = None
+                    else:                    
+                        key = "the key is provided by the user and already loaded into the running ssh agent"
             if key==None:
                 if not self._stopped.isSet():
                     self.loadKey()
@@ -175,8 +183,8 @@ class KeyDist(object):
                 self.password = oneTimePassphrase
                 self.removeKeyOnExit.set()
             else:
-                logger.debug('requesting a permenant key passphrase')
-                queue=Queue.queue()
+                logger.debug('requesting a permanent key passphrase')
+                queue=Queue.Queue()
                 wx.CallAfter(self.getPassphrase,queue=queue)
                 (canceled,self.password)=queue.get()
                 if canceled:
@@ -185,7 +193,7 @@ class KeyDist(object):
                     self._exit.set()
             if not self._stopped.isSet():
                 def success(): 
-                    logger.debug('succesfully generated a new ssh key')
+                    logger.debug('successfully generated a new ssh key')
                     self.keyCreated.set()
                 def failure(): 
                     logger.debug("failed to generate a new ssh key")
@@ -215,7 +223,7 @@ class KeyDist(object):
             (canceled,self.password)=queue.get()
             if canceled:
                 self._stopped.set()
-                self.cancelMessage="cancled while requesting the existing ssh key passphrase"
+                self.cancelMessage="canceled while requesting the existing ssh key passphrase"
                 self._exit.set()
             self._addKeyComplete.set()
         def loadedCallback():
