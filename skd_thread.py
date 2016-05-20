@@ -176,7 +176,7 @@ class KeyDist(object):
                 self.removeKeyOnExit.set()
             else:
                 logger.debug('requesting a permenant key passphrase')
-                queue=Queue.queue()
+                queue=Queue.Queue()
                 wx.CallAfter(self.getPassphrase,queue=queue)
                 (canceled,self.password)=queue.get()
                 if canceled:
