@@ -21,11 +21,11 @@ class CreateNewKeyDialog(wx.Dialog):
             self.progressDialog.Show(False)
             self.closedProgressDialog = True
 
-        self.createNewKeyDialogSizer = wx.FlexGridSizer(rows=1, cols=1)
+        self.createNewKeyDialogSizer = wx.FlexGridSizer(rows=1, cols=1, vgap=0, hgap=0)
         self.SetSizer(self.createNewKeyDialogSizer)
 
         self.createNewKeyDialogPanel = wx.Panel(self, wx.ID_ANY)
-        self.createNewKeyDialogPanelSizer = wx.FlexGridSizer(8,1)
+        self.createNewKeyDialogPanelSizer = wx.FlexGridSizer(rows=6,cols=2,vgap=0,hgap=0)
         self.createNewKeyDialogPanel.SetSizer(self.createNewKeyDialogPanelSizer)
 
         self.createNewKeyDialogSizer.Add(self.createNewKeyDialogPanel, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.BOTTOM, border=15)
@@ -48,7 +48,7 @@ class CreateNewKeyDialog(wx.Dialog):
 
         self.innerPassphrasePanel = wx.Panel(self.passphrasePanel, wx.ID_ANY)
         self.innerPassphrasePanel.SetMinSize(wx.Size(450,-1))
-        self.innerPassphrasePanelSizer = wx.FlexGridSizer(2,3, hgap=10)
+        self.innerPassphrasePanelSizer = wx.FlexGridSizer(rows=2, cols=3, vgap=0, hgap=10)
         self.innerPassphrasePanel.SetSizer(self.innerPassphrasePanelSizer)
 
         self.passphraseLabel = wx.StaticText(self.innerPassphrasePanel, wx.ID_ANY, "Passphrase:")
@@ -89,7 +89,7 @@ class CreateNewKeyDialog(wx.Dialog):
         self.privateKeyLocationPanel.SetSizer(self.privateKeyLocationGroupBoxSizer)
 
         self.innerPrivateKeyLocationPanel = wx.Panel(self.privateKeyLocationPanel, wx.ID_ANY)
-        self.innerPrivateKeyLocationPanelSizer = wx.FlexGridSizer(1,3, hgap=10)
+        self.innerPrivateKeyLocationPanelSizer = wx.FlexGridSizer(rows=1,cols=3,vgap=0,hgap=10)
         self.innerPrivateKeyLocationPanelSizer.AddGrowableCol(1)
         self.innerPrivateKeyLocationPanel.SetSizer(self.innerPrivateKeyLocationPanelSizer)
 
